@@ -9,7 +9,8 @@ body {
     background: linear-gradient(180deg, #A2AAFF 0%, #FFFFFF 100%);
     font-family: -apple-system, sans-serif;
     margin: 0;
-    color: #333; /* Default text for contrast */
+    color: #333; 
+    height: 100vh;
 }
 
 .view { display: none; padding: 20px; }
@@ -35,7 +36,7 @@ body {
     margin: 20px 0;
     cursor: pointer;
     transition: 0.3s;
-    background: rgba(255, 255, 255, 0.1); /* Lighter background for visibility */
+    background: rgba(255, 255, 255, 0.1); 
 }
 
 .drop-zone span { font-weight: bold; color: #5856D6; }
@@ -89,7 +90,6 @@ body {
     border-radius: 25px;
     color: white; 
 }
-
 .modal-close {
     position: absolute;
     top: 15px;
@@ -100,7 +100,6 @@ body {
     font-size: 1.5rem;
     cursor: pointer;
 }
-
 .glass-input {
     background: rgba(255, 255, 255, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.5);
@@ -125,12 +124,80 @@ body {
 }
 .primary-btn:disabled { background: #ccc; cursor: not-allowed; }
 
-/* Quiz View Cleanup (Addressing visible remnants) */
+/* QUIZ VIEW STYLES */
 #quiz-view {
-    display: none;
-}
-#quiz-view.active {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    padding: 0;
 }
+#quiz-view:not(.active) {
+    display: none;
+}
+.quiz-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-radius: 0;
+    border-top: none;
+}
+.quiz-top-bar button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1rem;
+}
+.progress-bar-bg {
+    width: 50%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+#progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #34C759;
+    transition: width 0.3s ease-out;
+}
+.quiz-footer {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+.icon-btn, .main-action {
+    padding: 10px 15px;
+    border-radius: 10px;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+}
+.icon-btn { background: #ccc; }
+.main-action { background: var(--accent); color: white; }
+
+/* Option Buttons */
+.options-list { margin-top: 20px; }
+.opt-btn {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin: 10px 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+    color: #333;
+    font-size: 1.1rem;
+    text-align: left;
+    transition: all 0.2s;
+}
+.opt-btn.selected { 
+    background: var(--accent); 
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+.opt-btn.right { background: #34C759 !important; color: white; border-color: #34C759; }
+.opt-btn.wrong { background: #FF3B30 !important; color: white; border-color: #FF3B30; }
+.q-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 15px; margin-bottom: 15px; }

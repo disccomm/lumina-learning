@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lumina-v4-cache';
+const CACHE_NAME = 'lumina-v6-cache';
 const IMAGE_CACHE = 'lumina-images-v1';
 
 const ASSETS_TO_CACHE = [
