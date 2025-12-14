@@ -1,0 +1,9 @@
+[
+  {
+    "question": "What is the capital of France?",
+    "options": ["Paris", "London", "Berlin", "Madrid"],
+    "correct": "Paris",
+    "pdf_ref": "Page 5",
+    "pexels_query": "Eiffel Tower"
+  }
+]
