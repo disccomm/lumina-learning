@@ -1,49 +1,65 @@
 :root {
-    --primary: #6366f1;
-    --success: #22c55e;
-    --error: #ef4444;
-    --glass: rgba(255, 255, 255, 0.25);
+    --ios-bg: #F2F2F7;
+    --accent: #5856D6;
+    --glass: rgba(255, 255, 255, 0.7);
 }
 
 body {
+    background: linear-gradient(180deg, #A2AAFF 0%, #FFFFFF 100%);
+    font-family: -apple-system, sans-serif;
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    height: 100vh;
     overflow: hidden;
 }
 
-.glass-card {
+.glass {
     background: var(--glass);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 30px;
-    padding: 25px;
-    margin: 20px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 20px;
 }
 
-.view { display: none; height: 100%; padding-top: 40px; }
-.view.active { display: block; }
+.drop-zone {
+    border: 2px dashed var(--accent);
+    padding: 40px;
+    text-align: center;
+    border-radius: 20px;
+    margin: 20px 0;
+    cursor: pointer;
+    transition: 0.3s;
+}
 
-.option-btn {
-    display: block;
-    width: 100%;
-    padding: 15px;
-    margin: 10px 0;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid white;
-    border-radius: 15px;
+.tiles-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    padding: 20px;
+}
+
+.tile {
+    padding: 30px 10px;
+    text-align: center;
+    border-radius: 25px;
     color: white;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.purple { background: #5856D6; }
+.orange { background: #FF9500; }
+.blue { background: #007AFF; }
+
+.hidden { display: none !important; }
+
+/* Quiz Styles */
+.opt-btn {
+    width: 100%;
+    padding: 18px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 15px;
+    background: white;
     font-size: 1.1rem;
-    transition: all 0.2s;
 }
 
-.option-btn:active { transform: scale(0.98); background: var(--primary); }
-
-@media print {
-    .view { display: block !important; background: white; color: black; }
-    .glass-card { border: 1px solid #ccc; backdrop-filter: none; }
-}
+.opt-btn.right { background: #34C759 !important; color: white; }
+.opt-btn.wrong { background: #FF3B30 !important; color: white; }

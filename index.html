@@ -3,75 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lumina Learning</title>
+    <title>Lumina Learning v2</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-    <noscript>
-        <div class="fallback-ui">Please enable JavaScript to enjoy Lumina Learning.</div>
-    </noscript>
-
-    <div id="app" class="app-container">
-        <section id="import-view" class="view active">
-            <header class="glass-header">
+    <div id="app">
+        <main id="hub-view" class="view active">
+            <header class="ios-header">
                 <h1>Lumina</h1>
-                <p>What are we learning today?</p>
+                <p>Welcome back, Explorer!</p>
             </header>
-            <div class="glass-card import-zone">
-                <input type="text" id="topic-nickname" placeholder="Nickname (e.g. My Science Quiz)">
-                <select id="topic-category">
-                    <option value="GK">General Knowledge</option>
-                    <option value="Maths">Mathematics</option>
-                    <option value="Science">Science</option>
-                    <option value="S&T">Science & Tech</option>
-                    <option value="Comp">Computers</option>
-                </select>
-                <div class="file-input-wrapper">
-                    <button class="btn-primary">Upload PDF</button>
-                    <input type="file" id="pdf-upload" accept="application/pdf">
-                </div>
-                <div class="learning-zone">
-                    <label>Learning Zone (Age):</label>
-                    <input type="number" id="age-filter" value="10" min="5" max="18">
-                </div>
-            </div>
-        </section>
 
-        <section id="menu-view" class="view">
-            <div class="glass-card">
-                <h2 id="current-topic-display">Ready to Play?</h2>
-                <div class="menu-grid">
-                    <button onclick="startQuiz()" class="menu-item">🚀 Instant Quiz</button>
-                    <button onclick="startFlashcards()" class="menu-item">🎴 Flashcards</button>
-                    <button onclick="generateWorksheets()" class="menu-item">📝 Worksheets</button>
+            <div class="glass-container">
+                <div class="import-card">
+                    <input type="text" id="topic-name" placeholder="Topic Name (e.g. Science)">
+                    <select id="category-picker">
+                        <option value="GK">General Knowledge</option>
+                        <option value="Maths">Mathematics</option>
+                        <option value="Science">Science</option>
+                    </select>
+                    <div class="drop-zone" onclick="document.getElementById('pdf-file').click()">
+                        <span id="file-status">Tap to Upload PDF</span>
+                        <input type="file" id="pdf-file" hidden accept=".pdf">
+                    </div>
+                    <div class="zone-selector">
+                        <label>Level:</label>
+                        <input type="range" id="age-range" min="5" max="16" value="10">
+                        <span id="age-val">10 yrs</span>
+                    </div>
+                    <button class="primary-btn pulse" onclick="processAndLoad()">Build My Library</button>
+                </div>
+
+                <div id="action-tiles" class="tiles-grid hidden">
+                    <div class="tile purple" onclick="openQuizConfig()">
+                        <span class="icon">🚀</span>
+                        <h3>Instant Quiz</h3>
+                    </div>
+                    <div class="tile orange" onclick="startFlashcards()">
+                        <span class="icon">🎴</span>
+                        <h3>Flashcards</h3>
+                    </div>
+                    <div class="tile blue" onclick="generateWorksheets()">
+                        <span class="icon">📝</span>
+                        <h3>Worksheets</h3>
+                    </div>
                 </div>
             </div>
-        </section>
+        </main>
 
         <section id="quiz-view" class="view">
-            <div class="quiz-header glass-card">
-                <div id="quiz-timer">00:00</div>
-                <div class="progress-container">
-                    <div id="quiz-progress-bar"></div>
-                </div>
-                <button onclick="togglePause()" id="pause-btn">⏸️</button>
-                <button onclick="exitQuiz()" id="exit-btn">Exit X</button>
+            <div class="quiz-top-bar glass">
+                <button onclick="exitToHub()">✕</button>
+                <div class="timer" id="timer">00:00</div>
+                <div class="progress-bar-bg"><div id="progress-fill"></div></div>
             </div>
-            <div id="question-container" class="glass-card">
-                </div>
-            <div class="quiz-controls">
-                <button onclick="prevQuestion()" id="prev-btn">Prev</button>
-                <button onclick="clearAnswer()" id="clear-btn">🧹 Clear</button>
-                <button onclick="skipQuestion()" id="skip-btn">Skip</button>
-                <button onclick="nextQuestion()" id="next-btn" disabled>Next</button>
+            <div id="quiz-content"></div>
+            <div class="quiz-footer">
+                <button class="icon-btn" onclick="clearSelection()">🧹</button>
+                <button class="icon-btn" onclick="skipQuestion()">Skip</button>
+                <button id="next-btn" class="main-action" disabled onclick="handleNext()">Next</button>
             </div>
         </section>
-    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+        <div id="modal-overlay" class="modal hidden">
+            <div class="modal-content glass">
+                <h2 id="modal-title">Settings</h2>
+                <div id="modal-body"></div>
+                <button class="primary-btn" onclick="closeModal()">Start</button>
+            </div>
+        </div>
+    </div>
     <script src="app.js"></script>
 </body>
 </html>

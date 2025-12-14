@@ -1,79 +1,105 @@
-// CONFIGURATION
-const PEXELS_API_KEY = "YOUR_PEXELS_API_KEY_HERE"; // <--- ADD YOUR KEY HERE
-let currentSession = {
-    questions: [],
+const PEXELS_API_KEY = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM";
+
+const State = {
+    db: [],
+    currentTopic: "",
     currentIndex: 0,
-    timer: 0,
-    isPaused: false,
-    results: []
+    correctCount: 0,
+    seconds: 0,
+    timerInt: null
 };
 
-// INITIALIZATION
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
+// --- CORE FUNCTIONS ---
+
+async function processAndLoad() {
+    const fileInput = document.getElementById('pdf-file');
+    const topic = document.getElementById('topic-name').value;
+
+    if (!fileInput.files[0] || !topic) {
+        alert("Please provide a name and select a file.");
+        return;
+    }
+
+    // SIMULATING LLM EXTRACTION (Required for PWA Demo)
+    // In real use, this fetch calls your LLM to parse the PDF text
+    document.getElementById('file-status').innerText = "Analyzing Content...";
+    
+    setTimeout(() => {
+        State.db = generateMockData(50); // Generates 50 questions
+        document.getElementById('action-tiles').classList.remove('hidden');
+        document.getElementById('file-status').innerText = "✅ Ready!";
+    }, 1500);
 }
 
-// 1. IMPORT & PDF PROCESSING
-document.getElementById('pdf-upload').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    const nickname = document.getElementById('topic-nickname').value || "Unnamed Topic";
-    
-    // UI Feedback: Loading
-    showView('menu-view');
-    document.getElementById('current-topic-display').innerText = `Topic: ${nickname}`;
-    
-    // Note: In a production environment, text is extracted here using PDF.js
-    // and sent to an LLM endpoint. For this architecture, we simulate the 50-question 
-    // JSON generation result from the LLM.
-    generateQuestionsFromLLM(file);
-});
+function openQuizConfig() {
+    const max = State.db.length;
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <p>Questions in bank: ${max}</p>
+        <input type="number" id="q-count" value="10" min="1" max="${max}">
+    `;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+}
 
-// 2. QUIZ LOGIC
 function startQuiz() {
-    const count = prompt("How many questions? (10-200)", "20");
-    setupQuizSession(parseInt(count));
-    showView('quiz-view');
+    const count = parseInt(document.getElementById('q-count').value);
+    State.sessionSet = [...State.db].sort(() => 0.5 - Math.random()).slice(0, count);
+    State.currentIndex = 0;
+    switchView('quiz-view');
+    renderQuestion();
     startTimer();
 }
 
-function setupQuizSession(count) {
-    // Dynamic Capping Logic
-    const max = currentSession.questions.length;
-    const finalCount = Math.min(count, max);
-    
-    // Shuffle logic (Fisher-Yates)
-    currentSession.activeSet = currentSession.questions
-        .sort(() => 0.5 - Math.random())
-        .slice(0, finalCount);
-    
-    renderQuestion();
-}
-
 function renderQuestion() {
-    const q = currentSession.activeSet[currentSession.currentIndex];
-    const container = document.getElementById('question-container');
-    
-    // Pexels API Integration Placeholder
-    const imageUrl = `https://api.pexels.com/v1/search?query=${q.pexels_query}`;
-    
-    container.innerHTML = `
-        <h3>Question ${currentSession.currentIndex + 1}</h3>
-        <p>${q.question}</p>
-        <div class="options-grid">
-            ${q.options.map(opt => `<button class="option-btn" onclick="checkAnswer('${opt}')">${opt}</button>`).join('')}
+    const q = State.sessionSet[State.currentIndex];
+    const content = document.getElementById('quiz-content');
+    const options = [...q.options].sort(() => 0.5 - Math.random()); // Shuffle options
+
+    content.innerHTML = `
+        <div class="question-card glass">
+            <img src="https://images.pexels.com/photos/search?query=${q.pexels_query}&per_page=1" class="q-img">
+            <h2>${q.question}</h2>
+            <div class="options-list">
+                ${options.map(opt => `
+                    <button class="opt-btn" onclick="selectOption(this, '${opt}', '${q.correct}')">
+                        ${opt}
+                    </button>
+                `).join('')}
+            </div>
         </div>
     `;
+}
+
+function selectOption(btn, choice, correct) {
+    const allBtns = document.querySelectorAll('.opt-btn');
+    allBtns.forEach(b => b.classList.remove('selected', 'wrong', 'right'));
     
-    updateProgressBar();
+    btn.classList.add('selected');
+    document.getElementById('next-btn').disabled = false;
+    
+    // Immediate Visual Feedback
+    if(choice === correct) {
+        btn.classList.add('right');
+        playAudio('success');
+    } else {
+        btn.classList.add('wrong');
+        playAudio('error');
+    }
 }
 
-// 3. UI HELPERS
-function showView(viewId) {
+// Helper: Navigation
+function switchView(id) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
+    document.getElementById(id).classList.add('active');
 }
 
-function updateProgressBar() {
-    const progress = ((currentSession.currentIndex + 1) / currentSession.activeSet.length) * 100;
-    document.getElementById('quiz-progress-bar').style.width = `${progress}%`;
+function generateMockData(num) {
+    // Returns 50 questions with page numbers and pexels tags
+    return Array.from({length: num}, (_, i) => ({
+        question: `Sample Concept ${i+1}: What is the primary function of this subject?`,
+        options: ["Option A", "Option B", "Option C", "Option D"],
+        correct: "Option A",
+        pdf_ref: `Page ${Math.floor(i/2) + 1}`,
+        pexels_query: "education"
+    }));
 }
