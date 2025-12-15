@@ -1,5 +1,5 @@
-// --- CONFIGURATION & STATE (V16.0 Stable - Architecture Ready) ---const PEXELS_API_KEY_DEFAULT = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
-const PEXELS_API_KEY_DEFAULT = "ADD_YOUR_KEY_HERE"; 
+// --- CONFIGURATION & STATE (V16.0 Stable - Architecture Ready) ---
+const PEXELS_API_KEY_DEFAULT = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
 let PEXELS_API_KEY = localStorage.getItem('pexelsKey') || PEXELS_API_KEY_DEFAULT; 
 const State = {
     db: [], 
