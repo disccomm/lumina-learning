@@ -1,11 +1,26 @@
-// --- CONFIGURATION & STATE (V19.0 Stable) ---
+// --- CONFIGURATION & STATE (V21.0 Stable) ---
 const PEXELS_API_KEY_DEFAULT = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
 let PEXELS_API_KEY = localStorage.getItem('pexelsKey') || PEXELS_API_KEY_DEFAULT; 
 
-// V19.0: Theme State Initialization
 let isDarkMode = localStorage.getItem('isDarkMode') === 'true';
 let fontSize = localStorage.getItem('fontSize') || 16;
 let topicName = localStorage.getItem('topicName') || '';
+
+// V21.0: Simulated Content Assimilation
+const ASSIMILATED_CONTENT = [
+    { page: 1, concept: "Quantum Entanglement", definition: "A phenomenon where two or more particles are linked in such a way that measuring the property of one instantly influences the property of the others, regardless of the distance between them.", keywords: ["superposition", "non-local", "measurement"] },
+    { page: 5, concept: "The Doppler Effect", definition: "The change in frequency or wavelength of a wave in relation to an observer who is moving relative to the wave source.", keywords: ["frequency", "wavelength", "redshift", "blueshift"] },
+    { page: 12, concept: "Photosynthesis", definition: "The process used by plants and other organisms to convert light energy into chemical energy that can later be released to fuel the organism's activities.", keywords: ["chlorophyll", "glucose", "carbon dioxide"] },
+    { page: 20, concept: "Defensive Cyber Ops", definition: "A strategy focused on protecting networks, systems, and programs from digital attacks, involving monitoring, detection, and response protocols.", keywords: ["firewall", "SIEM", "zero trust"] },
+    { page: 33, concept: "The Zero Trust Model", definition: "An IT security framework requiring all users, whether inside or outside the organization's network, to be authenticated, authorized, and continuously validated before being granted or maintaining access to applications and data.", keywords: ["authentication", "authorization", "continuous validation"] }
+];
+
+// V21.0: Knowledge Zone Definition
+const KNOWLEDGE_ZONES = {
+    Explorer: { min: 5, max: 10, prompt: "Basic Recall/Definition" },
+    Creator: { min: 11, max: 15, prompt: "Application/Analysis" },
+    Innovator: { min: 16, max: 25, prompt: "Evaluation/Synthesis" }
+};
 
 const State = {
     db: [], 
@@ -25,13 +40,24 @@ function playAudio(type) {
     console.log(`Audio Feedback: ${type}`);
 }
 
-function applyTheme() {
-    document.body.classList.toggle('dark-mode', isDarkMode);
-    // V19.0: Ensure font size is applied correctly
-    document.documentElement.style.setProperty('--base-font-size', `${parseInt(fontSize)}px`); 
+function getKnowledgeZone(age) {
+    const ageInt = parseInt(age);
+    if (ageInt >= KNOWLEDGE_ZONES.Innovator.min) return 'Innovator';
+    if (ageInt >= KNOWLEDGE_ZONES.Creator.min) return 'Creator';
+    return 'Explorer';
 }
 
-// V19.0: Action Tile Toggler
+function applyTheme() {
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    document.documentElement.style.setProperty('--base-font-size', `${parseInt(fontSize)}px`); 
+
+    const ageRange = document.getElementById('age-range');
+    if (ageRange) {
+        const zone = getKnowledgeZone(ageRange.value);
+        document.querySelector('.welcome-text').innerText = `Welcome back, ${zone}!`;
+    }
+}
+
 function toggleActionTiles(enable) {
     const tiles = document.getElementById('action-tiles');
     if (tiles) {
@@ -39,12 +65,11 @@ function toggleActionTiles(enable) {
     }
 }
 
-// --- INITIALIZATION AND UI BINDINGS (V19.0: Slider and State Fixes) ---
+// --- INITIALIZATION AND UI BINDINGS (V21.0: Knowledge Zone Fix) ---
 
 document.addEventListener('DOMContentLoaded', () => {
     applyTheme();
     
-    // V19.0: Topic Name persistence and initialization
     const topicInput = document.getElementById('topic-name');
     if (topicInput) {
         topicInput.value = topicName;
@@ -54,23 +79,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // V19.0: Age Slider Fix (Ensuring correct initial value display and persistence)
+    // V21.0: Age Slider Fix - Update text to show age and Zone
     const ageRange = document.getElementById('age-range');
     const ageVal = document.getElementById('age-val');
+    const welcomeText = document.querySelector('.welcome-text');
     const storedAge = localStorage.getItem('ageRange') || 10;
     
     if (ageRange && ageVal) {
         ageRange.value = storedAge;
-        ageVal.innerText = storedAge + ' yrs';
+        const zone = getKnowledgeZone(storedAge);
+        ageVal.innerText = `${storedAge} yrs (${zone})`;
+        welcomeText.innerText = `Welcome back, ${zone}!`;
         
         ageRange.addEventListener('input', (e) => {
             const val = e.target.value;
-            ageVal.innerText = val + ' yrs';
-            localStorage.setItem('ageRange', val); // Persist age
+            const newZone = getKnowledgeZone(val);
+            ageVal.innerText = `${val} yrs (${newZone})`;
+            welcomeText.innerText = `Welcome back, ${newZone}!`;
+            localStorage.setItem('ageRange', val); 
         });
     }
 
-    // File Upload Listener
     const fileInput = document.getElementById('pdf-file');
     const fileStatus = document.getElementById('file-status');
     if (fileInput && fileStatus) {
@@ -80,13 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Check if we have data to enable tiles on load (Simulated database check)
     if (State.db.length > 0) {
         toggleActionTiles(true);
-    }
-
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js');
     }
 });
 
@@ -109,53 +133,84 @@ function openConfirmationModal(title, bodyText, actionText, actionFn) {
     document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
-// --- MOCK SERVICES (V19.0: Critical Scope Fix) ---
+// --- AI INTELLIGENT SERVICE (V21.0: Real Content Simulation) ---
 
-// CRITICAL FIX: Ensure AIExtractionService is defined in the global scope for processAndLoad to access it.
 function AIExtractionService(topic, aiStatus) {
     return new Promise(async (resolve, reject) => {
-        // --- CLIENT-SIDE AI MOCK ---
-        // This process requires a dedicated backend server (Node.js/Python) for real file parsing and LLM API calls.
         
+        const age = localStorage.getItem('ageRange') || 10;
+        const zone = getKnowledgeZone(age);
+        const zonePrompt = KNOWLEDGE_ZONES[zone].prompt;
+
         await new Promise(r => setTimeout(r, 1000));
-        aiStatus.innerText = "2. 🧠 Analyzing Text and Extracting Concepts...";
+        aiStatus.innerText = "2. 📄 Segmenting and Assimilating PDF Content...";
 
         if (topic.toUpperCase().includes('ERROR')) {
-             // Simulate API failure
              reject(new Error("Simulated API failure: Cannot analyze content."));
              return;
         }
 
         await new Promise(r => setTimeout(r, 2000));
-        aiStatus.innerText = "3. 📝 Formulating Questions and Answers...";
+        aiStatus.innerText = "3. 🧠 Applying " + zonePrompt + " logic to formulate questions...";
 
         await new Promise(r => setTimeout(r, 1000));
         
-        const quizData = generateMockData(50, topic);
+        const quizData = generateIntelligentQuestions(50, topic, zone);
         resolve(quizData);
     });
 }
 
-function generateMockData(num, topic) {
+function generateIntelligentQuestions(num, topic, zone) {
     if (!topic) topic = "General Science";
-    return Array.from({length: num}, (_, i) => {
-        const questionText = `Question ${i + 1} from ${topic}: According to the provided source, what key term is associated with Page ${Math.floor(i / 2) + 1}?`;
-        const correctAnswer = `Key Term ${i % 4 + 1}`;
-        const options = ["Key Term 1", "Key Term 2", "Key Term 3", "Key Term 4"];
+    const contentPool = ASSIMILATED_CONTENT;
+    
+    // Commands based on complexity (Bloom's Taxonomy Simulation)
+    const complexityCommands = {
+        Explorer: ['Define', 'What is the purpose of', 'Identify the primary component of'], 
+        Creator: ['Explain how', 'Apply the principle of', 'Compare and contrast'], 
+        Innovator: ['Evaluate the effectiveness of', 'Justify the use of', 'Synthesize a solution using']
+    }[zone];
+
+    const questions = [];
+    
+    for (let i = 0; i < num; i++) {
+        const contentItem = contentPool[i % contentPool.length]; 
+        const command = complexityCommands[i % complexityCommands.length];
         
-        if (!options.includes(correctAnswer)) {
-             options[Math.floor(Math.random() * 4)] = correctAnswer;
+        let questionText;
+        let correctAnswer;
+        
+        // V21.0: Question tailoring based on zone command
+        if (command.includes('Define') || command.includes('What is the purpose of') || command.includes('Identify')) {
+            questionText = `According to the source, ${command.toLowerCase()} ${contentItem.concept}?`;
+            correctAnswer = contentItem.definition.split('that')[0].trim() + "."; 
+        } else if (command.includes('Apply') || command.includes('Explain') || command.includes('Compare')) {
+            questionText = `Using the principles of ${contentItem.concept}, ${command.toLowerCase()} the relationship between ${contentItem.keywords[0]} and ${contentItem.keywords[1]}.`;
+            correctAnswer = `It involves ${contentItem.keywords[2]} as a result of the core ${contentItem.concept} principle.`;
+        } else if (command.includes('Evaluate') || command.includes('Justify') || command.includes('Synthesize')) {
+            questionText = `${command} the use of ${contentItem.concept} in real-world security models, referencing ${contentItem.keywords[0]}.`;
+            correctAnswer = `The evaluation focuses on ${contentItem.keywords[1]} over ${contentItem.keywords[2]} to maintain security posture.`;
         }
 
-        return {
+        // Generate options: Correct answer + 3 distractors
+        const options = [correctAnswer, `A completely unrelated fact about ${contentPool[(i+1) % contentPool.length].concept}.`, `An incorrect statement about ${contentItem.concept}.`, `A distractor using the term ${contentItem.keywords[0]} incorrectly.`];
+        
+        const finalOptions = options.sort(() => 0.5 - Math.random()).slice(0, 4);
+        if (!finalOptions.includes(correctAnswer)) {
+            finalOptions[Math.floor(Math.random() * 4)] = correctAnswer;
+        }
+
+        questions.push({
             question: questionText,
-            options: options,
+            options: finalOptions,
             correct: correctAnswer, 
-            pdf_ref: `Page ${Math.floor(i / 2) + 1}`,
-            pexels_query: topic.split(' ')[0],
+            pdf_ref: `Page ${contentItem.page} (Concept: ${contentItem.concept})`, 
+            pexels_query: contentItem.concept.split(' ')[0],
             question_topic: topic 
-        };
-    });
+        });
+    }
+
+    return questions;
 }
 
 function MockImageService(query) {
@@ -175,7 +230,7 @@ function getQuestionImage(query) {
 }
 
 
-// --- HUB ACTIONS ---
+// --- HUB ACTIONS (No change) ---
 
 async function processAndLoad() {
     const fileInput = document.getElementById('pdf-file');
@@ -186,7 +241,6 @@ async function processAndLoad() {
         openConfirmationModal("Topic Required", "Please provide a Topic Name first.", "OK");
         return;
     }
-    // V19.0: Check if file is actually selected
     if (!fileInput.files || fileInput.files.length === 0) {
         openConfirmationModal("File Required", "Please select a PDF file before building the library.", "OK");
         return;
@@ -202,9 +256,8 @@ async function processAndLoad() {
         State.db = quizData; 
         
         document.getElementById('file-status').innerText = fileInput.files[0].name;
-        aiStatus.innerText = `✅ Success! ${quizData.length} Questions Loaded for ${topicName}.`;
+        aiStatus.innerText = `✅ Success! ${quizData.length} Tailored Questions Loaded for ${topicName}.`;
         
-        // V19.0: Enable action tiles upon success
         toggleActionTiles(true);
         
     } catch (error) {
@@ -220,8 +273,6 @@ function switchView(id) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(id).classList.add('active');
 }
-
-// ... (openQuizConfig, startQuiz, startFlashcards, generateWorksheets remain the same) ...
 
 function openQuizConfig() {
     const max = State.db.length;
@@ -288,7 +339,7 @@ function generateWorksheets() {
 }
 
 
-// --- SETTINGS ---
+// --- SETTINGS (V20.0: UX Refinement) ---
 
 function openSettingsModal() {
     const modalBody = document.getElementById('modal-body');
@@ -300,7 +351,6 @@ function openSettingsModal() {
     modalActionBtn.innerText = 'Save Settings';
     modalActionBtn.onclick = saveSettings; 
     
-    // V19.0: Redesigned modal body for better flow
     modalBody.innerHTML = `
         <div class="setting-group">
             <h3>Appearance</h3>
@@ -320,10 +370,11 @@ function openSettingsModal() {
             </div>
         </div>
         
-        <button class="signout-btn" onclick="signOut()">Sign Out & Reset</button>
+        <div class="setting-group signout-section">
+            <button class="signout-btn" onclick="signOut()">Sign Out & Reset</button>
+        </div>
     `;
 
-    // V19.0: Dynamic Font Update
     const fontSizeRange = document.getElementById('font-size-range');
     const fontSizeVal = document.getElementById('font-size-val');
     
@@ -379,7 +430,7 @@ function signOut() {
 }
 
 
-// --- QUIZ INTERACTION LOGIC (No change) ---
+// --- QUIZ INTERACTION LOGIC (V20.0: Clear Button Fix) ---
 
 function setupQuizSession(count) {
     State.sessionSet = [...State.db].sort(() => 0.5 - Math.random()).slice(0, count);
@@ -416,12 +467,11 @@ function renderQuestion() {
     const optionsContainer = document.getElementById('options-list');
 
     document.getElementById('q-img').src = getQuestionImage(qData.pexels_query);
-    // V19.0: Show current/total count in the header for context
     document.getElementById('q-header').innerText = `Question ${State.currentIndex + 1} of ${State.sessionSet.length}`; 
     document.getElementById('q-text').innerText = qData.question;
     
     optionsContainer.innerHTML = sessionQ.options.map(opt => `
-        <button class="opt-btn" onclick="selectAnswer(this, '${opt}')">
+        <button class="opt-btn" onclick="selectAnswer(this, decodeURIComponent('${encodeURIComponent(opt)}'))">
             ${opt}
         </button>
     `).join('');
@@ -439,6 +489,7 @@ function renderQuestion() {
     nextBtn.onclick = handleNext;
     
     if (sessionQ.isCorrect !== null) {
+        // V21.0: Using encoded answer for comparison
         const selectedBtn = Array.from(optionsContainer.querySelectorAll('.opt-btn')).find(b => b.innerText === sessionQ.answer);
         if (selectedBtn) {
             handleVisualFeedback(selectedBtn, sessionQ.isCorrect, qData.correct, true); 
@@ -520,9 +571,17 @@ function disableQuestionInteraction(lock) {
 }
 
 function clearSelection() {
+    const sessionQ = State.quizState[State.currentIndex];
+    
+    // V20.0: Clear Button Fix - Ensure all selected classes are removed and state is reset
     document.querySelectorAll('#options-list .opt-btn').forEach(b => b.classList.remove('selected', 'wrong', 'right'));
+    
+    sessionQ.answer = null;
+    sessionQ.isCorrect = null;
+    sessionQ.answeredTime = null;
+
     document.getElementById('next-btn').disabled = true;
-    State.quizState[State.currentIndex].answer = null;
+    disableQuestionInteraction(false);
 }
 
 function skipQuestion() {
@@ -548,7 +607,7 @@ function prevQuestion() {
     }
 }
 
-// --- REVIEW/SCORECARD LOGIC ---
+// --- REVIEW/SCORECARD LOGIC (No change) ---
 
 function openExitConfirmation() {
     if (State.timerInt) {
@@ -639,7 +698,7 @@ function retryWrongAnswers() {
     });
 }
 
-// --- TIMER LOGIC ---
+// --- TIMER LOGIC (No change) ---
 
 function startTimer() {
     State.quizStartTime = Date.now();

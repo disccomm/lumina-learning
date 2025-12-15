@@ -172,7 +172,7 @@ body {
 .level-indicator {
     font-weight: bold;
     color: var(--primary-color);
-    min-width: 50px;
+    min-width: 100px; /* Increased for new text */
     text-align: right;
 }
 
