@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lumina Learning v8</title>
+    <title>Lumina Learning v9.1</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
 </head>
@@ -13,6 +13,7 @@
             <header class="ios-header">
                 <h1>Lumina</h1>
                 <p>Welcome back, Explorer!</p>
+                <button class="settings-btn" onclick="openSettingsModal()">⚙️ Settings</button>
             </header>
 
             <div class="glass-container">
@@ -68,6 +69,22 @@
                 <button class="icon-btn" onclick="clearSelection()" id="clear-btn">🧹 Clear</button>
                 <button class="icon-btn" onclick="skipQuestion()" id="skip-btn">Skip</button>
                 <button id="next-btn" class="main-action" disabled onclick="handleNext()">Next</button>
+            </div>
+        </section>
+
+        <section id="review-view" class="view">
+            <header class="ios-header">
+                <h2>Quiz Scorecard 📊</h2>
+                <p id="review-score"></p>
+                <p id="review-time"></p>
+            </header>
+            
+            <div id="review-summary" class="glass-container">
+                </div>
+
+            <div class="quiz-footer">
+                <button class="main-action purple" onclick="retryWrongAnswers()">🎯 Retry Incorrect Answers</button>
+                <button class="main-action orange" onclick="switchView('hub-view')">🏠 Back to Hub</button>
             </div>
         </section>
 
