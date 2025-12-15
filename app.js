@@ -1,4 +1,4 @@
-// --- CONFIGURATION & STATE (V16.0 Stable - Architecture Ready) ---
+// --- CONFIGURATION & STATE (V17.0) ---
 const PEXELS_API_KEY_DEFAULT = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
 let PEXELS_API_KEY = localStorage.getItem('pexelsKey') || PEXELS_API_KEY_DEFAULT; 
 const State = {
@@ -13,7 +13,7 @@ const State = {
     isRetrySession: false 
 };
 
-// --- INITIALIZATION AND UI BINDINGS (No change) ---
+// --- INITIALIZATION AND UI BINDINGS (No significant change) ---
 
 function playAudio(type) {
     console.log(`Audio Feedback: ${type}`);
@@ -37,44 +37,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// --- HELPER: Use Custom Modal instead of Native alert() ---
+
+function openConfirmationModal(title, bodyText, actionText, actionFn) {
+    const modalBody = document.getElementById('modal-body');
+    const modalActionBtn = document.getElementById('modal-action-btn');
+
+    document.getElementById('modal-title').innerText = title;
+    
+    modalActionBtn.classList.remove('hidden');
+    modalActionBtn.innerText = actionText;
+    modalActionBtn.onclick = () => {
+        document.getElementById('modal-overlay').classList.add('hidden');
+        if (actionFn) actionFn(); 
+    };
+    
+    modalBody.innerHTML = `<p>${bodyText}</p>`;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
 // --- CORE FUNCTIONS (Processing, Navigation, and Settings) ---
 
-// V16.0: Uses the new AIExtractionService()
 async function processAndLoad() {
+    // ... (Code is identical to V16.0 for AI architecture)
     const fileInput = document.getElementById('pdf-file');
     const topic = document.getElementById('topic-name').value;
     const processButton = document.querySelector('.primary-btn');
     const aiStatus = document.getElementById('ai-status');
 
     if (!topic || topic.trim() === "") {
-        alert("Please provide a Topic Name first.");
+        openConfirmationModal("Topic Required", "Please provide a Topic Name first.", "OK");
         return;
     }
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-        alert("Please select a PDF file before building the library.");
+        openConfirmationModal("File Required", "Please select a PDF file before building the library.", "OK");
         return;
     }
     
     processButton.disabled = true;
     
     try {
-        // --- START: AI Simulation via Mock Service ---
         aiStatus.innerText = "1. ⬆️ Uploading PDF to AI Server...";
         
-        // Wait for the mock service to return data
         const quizData = await AIExtractionService(topic, aiStatus);
         
         State.db = quizData; 
         
-        // --- END: AI Simulation via Mock Service ---
-
         document.getElementById('action-tiles').classList.remove('hidden');
         document.getElementById('file-status').innerText = fileInput.files[0].name;
         aiStatus.innerText = `✅ Success! ${quizData.length} Questions Loaded for ${topic}.`;
         
     } catch (error) {
         aiStatus.innerText = `❌ Error: ${error.message}`;
-        alert("AI Processing Failed. Check your network or API key.");
+        openConfirmationModal("AI Processing Failed", "Check your network or ensure the file is valid.", "Close");
         console.error("AI Mock Service Error:", error);
     } finally {
         processButton.disabled = false;
@@ -89,7 +104,7 @@ function switchView(id) {
 function openQuizConfig() {
     const max = State.db.length;
     if (max === 0) {
-        alert("Please click 'Build My Library' first!");
+        openConfirmationModal("Library Empty", "Please click 'Build My Library' first!", "OK");
         return;
     }
     
@@ -119,7 +134,7 @@ function startQuiz() {
     const max = State.db.length;
     
     if (count < 1 || count > max || isNaN(count)) {
-        alert(`Invalid count. Must be between 1 and ${max}.`);
+        openConfirmationModal("Invalid Count", `Invalid count. Must be between 1 and ${max}.`, "Close");
         return;
     }
     
@@ -134,20 +149,25 @@ function startQuiz() {
     startTimer();
 }
 
+// V17.0: Use Custom Modal instead of Alert
 function startFlashcards() {
     if (State.db.length === 0) {
-        alert("Please build your library first!");
+        openConfirmationModal("Library Empty", "Please build your library first!", "OK");
         return;
     }
-    alert("Flashcards View Initialized! (Simulated)"); 
+    // Simulate complex view change and initialization
+    openConfirmationModal("Flashcards View", "Flashcards Session Initialized! (Simulated)", "Start Cards"); 
+    // switchView('flashcards-view'); // Uncomment when view is built
 }
 
+// V17.0: Use Custom Modal instead of Alert
 function generateWorksheets() {
     if (State.db.length === 0) {
-        alert("Please build your library first!");
+        openConfirmationModal("Library Empty", "Please build your library first!", "OK");
         return;
     }
-    alert("Worksheets PDF Generated! (Simulated)"); 
+    // Simulate PDF generation process
+    openConfirmationModal("Worksheet Generated", "Worksheets PDF Generated! (Simulated). Check your downloads.", "Done"); 
 }
 
 function openSettingsModal() {
@@ -194,30 +214,23 @@ function saveSettings() {
 
 // --- IMAGE LOADING (MOCK SERVICE) ---
 
-// V16.0: Mock Image Service returns a structured URL object
 function MockImageService(query) {
     const id = btoa(query).substring(0, 10);
-    // This mimics returning a permanent ID and a temporary display URL
     return {
         id: id,
         url: `https://picsum.photos/400/200?random=${id}`
     };
 }
 
-// V16.0: Uses the new Mock Image Service
 function getQuestionImage(query) {
-    // If Pexels key is valid, we would trigger a real fetch.
     if (PEXELS_API_KEY && PEXELS_API_KEY !== PEXELS_API_KEY_DEFAULT) {
-        // In a real app: fetch(`/api/image?query=${query}`)
-        // For now, we use the local mock service
         return MockImageService(query).url; 
     }
     
-    // Return a local placeholder if key is missing
     return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"><rect fill="#DDD" width="100" height="50"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="8" fill="#555">Visual Aid Placeholder</text></svg>';
 }
 
-// --- QUIZ INTERACTION LOGIC (No change) ---
+// --- QUIZ INTERACTION LOGIC ---
 
 function setupQuizSession(count) {
     State.sessionSet = [...State.db].sort(() => 0.5 - Math.random()).slice(0, count);
@@ -253,9 +266,9 @@ function renderQuestion() {
     const sessionQ = State.quizState[State.currentIndex];
     const optionsContainer = document.getElementById('options-list');
 
-    // V16.0: Use the new image function
     document.getElementById('q-img').src = getQuestionImage(qData.pexels_query);
-    document.getElementById('q-header').innerText = `Question ${State.currentIndex + 1} of ${State.sessionSet.length}`;
+    // V17.0 FIX: Remove question number from quiz view
+    document.getElementById('q-header').innerText = `Question: ${qData.question_topic || 'Topic Title'}`; 
     document.getElementById('q-text').innerText = qData.question;
     
     optionsContainer.innerHTML = sessionQ.options.map(opt => `
@@ -296,6 +309,7 @@ function renderQuestion() {
     
     updateProgressBar();
 }
+// ... (selectAnswer, handleNext, handleVisualFeedback, disableQuestionInteraction, clearSelection, skipQuestion, prevQuestion are unchanged) ...
 
 function selectAnswer(btn, choice) {
     const sessionQ = State.quizState[State.currentIndex];
@@ -334,7 +348,7 @@ function handleNext() {
     } else if (State.currentIndex === State.sessionSet.length - 1) {
         initiateReview();
     } else {
-        alert("Please select an answer or use the Skip button.");
+        openConfirmationModal("Selection Missing", "Please select an answer or use the Skip button.", "OK");
     }
 }
 
@@ -385,7 +399,6 @@ function prevQuestion() {
         renderQuestion();
     }
 }
-
 // --- REVIEW/SCORECARD LOGIC (No change) ---
 
 function openExitConfirmation() {
@@ -401,6 +414,7 @@ function openExitConfirmation() {
     
     modalActionBtn.classList.remove('hidden');
     modalActionBtn.innerText = 'Exit to Hub';
+    // Action will switch to hub, but after review (initiateReview calls switchView('hub-view') if not final question)
     modalActionBtn.onclick = initiateReview; 
     
     modalBody.innerHTML = `<p>Are you sure you want to exit the quiz? Your current progress will be lost.</p>`;
@@ -448,9 +462,10 @@ function initiateReview() {
         `;
     });
     
-    if (State.currentIndex === State.sessionSet.length - 1 && document.querySelector('#quiz-view').classList.contains('active')) {
+    if (document.querySelector('#quiz-view').classList.contains('active')) {
         switchView('review-view');
     } else {
+        // This handles the Exit X from Quiz View flow
         switchView('hub-view');
     }
 }
@@ -459,7 +474,7 @@ function retryWrongAnswers() {
     const wrongAnswers = State.quizState.filter(q => q.isCorrect === false);
     
     if (wrongAnswers.length === 0) {
-        alert("Great job! You have no incorrect answers to retry.");
+        openConfirmationModal("No Mistakes!", "Great job! You have no incorrect answers to retry.", "OK");
         return;
     }
     
@@ -470,13 +485,14 @@ function retryWrongAnswers() {
     
     setupQuizSession(retrySet.length); 
 
-    alert(`Retrying ${retrySet.length} incorrect answers...`);
+    openConfirmationModal("Retrying...", `Retrying ${retrySet.length} incorrect answers...`, "Start");
     switchView('quiz-view');
     renderQuestion();
     startTimer();
 }
 
 // --- TIMER AND MOCK DATA ---
+// ... (startTimer, togglePause, updateProgressBar are unchanged) ...
 
 function startTimer() {
     State.quizStartTime = Date.now();
@@ -502,35 +518,33 @@ function updateProgressBar() {
     document.getElementById('progress-fill').style.width = `${progress}%`;
 }
 
-// V16.0: MOCK AI EXTRACTION SERVICE (Returns a Promise)
+
+// MOCK AI EXTRACTION SERVICE (Promise-based for Backend Readiness)
 function AIExtractionService(topic, aiStatus) {
     return new Promise(async (resolve, reject) => {
-        // Step 1: Upload (Simulated 1s)
         await new Promise(r => setTimeout(r, 1000));
         aiStatus.innerText = "2. 🧠 Analyzing Text and Extracting Concepts...";
 
-        // Simulate an API failure if the topic is 'ERROR'
         if (topic.toUpperCase().includes('ERROR')) {
              reject(new Error("Simulated API failure: Cannot analyze content."));
              return;
         }
 
-        // Step 2: Analysis (Simulated 2s)
         await new Promise(r => setTimeout(r, 2000));
         aiStatus.innerText = "3. 📝 Formulating Questions and Answers...";
 
-        // Step 3: Generation (Simulated 1s)
         await new Promise(r => setTimeout(r, 1000));
         
-        // Final Step: Resolve the Promise with generated data
         const quizData = generateMockData(50, topic);
         resolve(quizData);
     });
 }
 
+// MOCK DATA GENERATION (Requires Server-Side PDF/AI for Real Content)
 function generateMockData(num, topic) {
     if (!topic) topic = "General Science";
     return Array.from({length: num}, (_, i) => {
+        // V17.0: Updated to reflect the topic dynamically in the mock question
         const questionText = `Question ${i + 1} from ${topic}: According to the provided source, what key term is associated with Page ${Math.floor(i / 2) + 1}?`;
         const correctAnswer = `Key Term ${i % 4 + 1}`;
         const options = ["Key Term 1", "Key Term 2", "Key Term 3", "Key Term 4"];
@@ -542,9 +556,10 @@ function generateMockData(num, topic) {
         return {
             question: questionText,
             options: options,
-            correct: correctAnswer, 
+            correct: correctAnswer: ${correctAnswer}, 
             pdf_ref: `Page ${Math.floor(i / 2) + 1}`,
-            pexels_query: topic.split(' ')[0] 
+            pexels_query: topic.split(' ')[0],
+            question_topic: topic // New field for clarity
         };
     });
 }
