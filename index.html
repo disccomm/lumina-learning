@@ -2,107 +2,129 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lumina Learning v15.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina Learning Hub</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="app">
-        <main id="hub-view" class="view active">
-            <header class="ios-header">
-                <h1>Lumina</h1>
-                <p>Welcome back, Explorer!</p>
-                <button class="settings-btn" onclick="openSettingsModal()">⚙️ Settings</button>
-            </header>
 
-            <div class="glass-container hub-content">
-                <div class="input-card">
-                    <h3>📚 1. Define Your Source</h3>
-                    <input type="text" id="topic-name" placeholder="Topic Name (e.g. Quantum Physics)">
-                    
-                    <div class="zone-selector">
-                        <label>Level:</label>
-                        <input type="range" id="age-range" min="5" max="16" value="10">
-                        <span id="age-val">10 yrs</span>
+    <div class="app-container">
+        
+        <div id="modal-overlay" class="modal-overlay hidden" onclick="document.getElementById('modal-overlay').classList.add('hidden')">
+            <div class="modal-content glass" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h2 id="modal-title">Modal Title</h2>
+                    <button class="close-btn" onclick="document.getElementById('modal-overlay').classList.add('hidden')">&times;</button>
+                </div>
+                <div id="modal-body" class="modal-body">
                     </div>
-
-                    <div class="drop-zone" onclick="document.getElementById('pdf-file').click()">
-                        <span id="file-status">Tap to Upload PDF</span>
-                        <input type="file" id="pdf-file" hidden accept=".pdf">
-                    </div>
-                    
-                    <div id="ai-status" class="ai-status">Ready to Analyze.</div>
-
-                    <button class="primary-btn pulse" onclick="processAndLoad()">Build My Library</button>
+                <div class="modal-footer">
+                    <button id="modal-action-btn" class="primary-btn pulse hidden">Action</button>
                 </div>
-
-                <div id="action-tiles" class="tiles-grid hidden">
-                    <h3>✨ 2. Choose Your Mode</h3>
-                    <div class="tile purple" onclick="openQuizConfig()">
-                        <span class="icon">🚀</span>
-                        <h3>Instant Quiz</h3>
-                    </div>
-                    <div class="tile orange" onclick="startFlashcards()">
-                        <span class="icon">🎴</span>
-                        <h3>Flashcards</h3>
-                    </div>
-                    <div class="tile blue" onclick="generateWorksheets()">
-                        <span class="icon">📝</span >
-                        <h3>Worksheets</h3>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <section id="quiz-view" class="view">
-             <div class="quiz-top-bar glass">
-                <div class="quiz-controls">
-                    <button onclick="openExitConfirmation()">Exit X</button> 
-                    <button onclick="togglePause()" id="pause-btn">⏸️</button>
-                </div>
-                <div class="timer-progress">
-                    <div class="timer" id="timer">00:00</div>
-                    <div class="progress-bar-bg"><div id="progress-fill"></div></div>
-                </div>
-            </div>
-            
-            <div id="quiz-content">
-                </div>
-            
-            <div class="quiz-footer">
-                <button class="icon-btn" onclick="prevQuestion()" id="prev-btn">Prev</button>
-                <button class="icon-btn" onclick="clearSelection()" id="clear-btn">🧹 Clear</button>
-                <button class="icon-btn" onclick="skipQuestion()" id="skip-btn">Skip</button>
-                <button id="next-btn" class="main-action" disabled onclick="handleNext()">Next</button>
-            </div>
-        </section>
-
-        <section id="review-view" class="view">
-            <header class="ios-header">
-                <h2>Quiz Scorecard 📊</h2>
-                <p id="review-score"></p>
-                <p id="review-time"></p>
-            </header>
-            
-            <div id="review-summary" class="glass-container">
-                </div>
-
-            <div class="quiz-footer">
-                <button class="main-action purple" onclick="retryWrongAnswers()">🎯 Retry Incorrect Answers</button>
-                <button class="main-action orange" onclick="switchView('hub-view')">🏠 Back to Hub</button>
-            </div>
-        </section>
-
-        <div id="modal-overlay" class="modal hidden">
-            <div class="modal-content glass">
-                <button class="modal-close" onclick="document.getElementById('modal-overlay').classList.add('hidden')">✕</button>
-                <h2 id="modal-title">Settings</h2>
-                <div id="modal-body"></div>
-                <button id="modal-action-btn" class="primary-btn pulse">Action</button>
             </div>
         </div>
+
+        <div id="hub-view" class="view active">
+            
+            <header class="app-header">
+                <h1 class="logo">Lumina</h1>
+                <p class="welcome-text">Welcome back, Explorer!</p>
+                <button class="settings-btn" onclick="openSettingsModal()">
+                    <span class="icon">⚙️</span> Settings
+                </button>
+            </header>
+
+            <section id="process-section" class="input-section">
+                <h3 class="section-header">📚 1. Define Your Source</h3>
+                
+                <div class="input-group">
+                    <label for="topic-name">Topic Name (e.g., Quantum Physics)</label>
+                    <input type="text" id="topic-name" placeholder="Enter topic..." class="glass-input">
+                </div>
+
+                <div class="input-group">
+                    <label for="age-range">Level:</label>
+                    <div class="slider-container">
+                        <input type="range" id="age-range" min="5" max="25" value="10">
+                        <span id="age-val" class="level-indicator">10 yrs</span>
+                    </div>
+                </div>
+
+                <div class="upload-area" onclick="document.getElementById('pdf-file').click()">
+                    <input type="file" id="pdf-file" accept=".pdf" class="hidden">
+                    <span id="file-status">Tap to Upload PDF</span>
+                </div>
+
+                <p id="ai-status" class="status-message">Ready to Analyze.</p>
+
+                <button class="primary-btn" onclick="processAndLoad()">Build My Library</button>
+            </section>
+            
+            <section id="action-section" class="input-section">
+                <h3 class="section-header">✨ 2. Choose Your Mode</h3>
+                <div id="action-tiles" class="action-tiles disabled"> 
+                    <div class="tile purple" onclick="openQuizConfig()">
+                        <span class="icon">🚀</span>
+                        Instant Quiz
+                    </div>
+                    <div class="tile orange" onclick="startFlashcards()">
+                        <span class="icon">📸</span>
+                        Flashcards
+                    </div>
+                    <div class="tile blue" onclick="generateWorksheets()">
+                        <span class="icon">📝</span>
+                        Worksheets
+                    </div>
+                </div>
+            </section>
+
+        </div> 
+        
+        <div id="quiz-view" class="view">
+            <header class="quiz-header">
+                <button class="exit-btn" onclick="openExitConfirmation()">Exit X</button>
+                <div class="timer-display" id="timer">00:00</div>
+                <button id="pause-btn" class="pause-btn" onclick="togglePause()">⏸️</button>
+            </header>
+            <div class="progress-bar-shell">
+                <div id="progress-fill" class="progress-bar-fill"></div>
+            </div>
+            
+            <div id="quiz-content" class="quiz-content">
+                </div>
+
+            <footer class="quiz-footer">
+                <button id="prev-btn" onclick="prevQuestion()" disabled>Prev</button>
+                <button id="clear-btn" onclick="clearSelection()">
+                    <span class="icon">🧹</span> Clear
+                </button>
+                <button id="skip-btn" onclick="skipQuestion()">Skip</button>
+                <button id="next-btn" class="main-action" onclick="handleNext()" disabled>Next</button>
+            </footer>
+        </div>
+
+        <div id="review-view" class="view">
+            <header class="app-header">
+                <h2>📊 Session Review</h2>
+            </header>
+            <div class="review-stats glass">
+                <p id="review-score">Score: 0 / 0</p>
+                <p id="review-time">Total Time: 00:00</p>
+            </div>
+            
+            <h3>Question Summary</h3>
+            <div id="review-summary" class="review-summary">
+                </div>
+            
+            <footer class="review-footer">
+                <button class="primary-btn" onclick="retryWrongAnswers()">🔄 Retry Incorrect Answers</button>
+                <button class="secondary-btn" onclick="switchView('hub-view')">Back to Hub</button>
+            </footer>
+        </div>
+
     </div>
-    <script src="app.js?v=150"></script> 
+
+    <script src="app.js"></script>
 </body>
 </html>
