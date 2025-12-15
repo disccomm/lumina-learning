@@ -1,37 +1,147 @@
-// --- CONFIGURATION & STATE ---
+// --- CONFIGURATION & STATE (V11.0 Stable)---
 const PEXELS_API_KEY_DEFAULT = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
-// Load key from storage, defaulting to PEXELS_API_KEY_DEFAULT
+// Loads Pexels key from storage if present
 let PEXELS_API_KEY = localStorage.getItem('pexelsKey') || PEXELS_API_KEY_DEFAULT; 
 const State = {
-// ... (State variables remain the same) ...
-    db: [],
-    sessionSet: [], 
+    db: [], // Holds all loaded questions (50 mock/simulated real)
+    sessionSet: [], // Current set of questions for the quiz
     currentIndex: 0,
     seconds: 0,
     timerInt: null,
-    quizState: [], 
+    quizState: [], // Persistence state for current quiz
     isPaused: false,
     quizStartTime: 0,
     isRetrySession: false 
 };
 
 // --- INITIALIZATION AND UI BINDINGS ---
-// ... (playAudio, DOMContentLoaded listeners remain the same) ...
-document.addEventListener('DOMContentLoaded', () => {
-    // ... (Age slider, PDF file, Service Worker listeners remain the same) ...
 
-    // Pre-set input fields if we implement persistence here later
+function playAudio(type) {
+    console.log(`Audio Feedback: ${type}`);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const ageRange = document.getElementById('age-range');
+    const ageVal = document.getElementById('age-val');
+    ageVal.innerText = ageRange.value + ' yrs';
+    ageRange.addEventListener('input', (e) => {
+        ageVal.innerText = e.target.value + ' yrs';
+    });
+
+    document.getElementById('pdf-file').addEventListener('change', (e) => {
+        const fileName = e.target.files[0] ? e.target.files[0].name : "Tap to Upload PDF";
+        document.getElementById('file-status').innerText = fileName;
+    });
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js');
+    }
 });
 
-// V9.1 UX FIX: Function to open centralized Settings Modal
+// --- CORE FUNCTIONS (Processing, Navigation, and Settings) ---
+
+// V11.0 CHANGE: Updated to simulate real data loading based on user topic.
+function processAndLoad() {
+    const fileInput = document.getElementById('pdf-file');
+    const topic = document.getElementById('topic-name').value;
+    const processButton = document.querySelector('.primary-btn');
+
+    if (!fileInput.files[0] || !topic) {
+        alert("Please provide a Topic Name and select a PDF file first.");
+        return;
+    }
+
+    document.getElementById('file-status').innerHTML = "⏳ **Analyzing Content and Generating Questions...**";
+    processButton.disabled = true;
+
+    // Simulates AI processing time (3 seconds)
+    setTimeout(() => {
+        // V11.0 CHANGE: Call the generator with the user's topic
+        State.db = generateMockData(50, topic); 
+        
+        document.getElementById('action-tiles').classList.remove('hidden');
+        document.getElementById('file-status').innerHTML = `✅ **Ready! 50 Questions Loaded for ${topic}.**`;
+        processButton.disabled = false;
+        
+    }, 3000); 
+}
+
+function switchView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function openQuizConfig() {
+    const max = State.db.length;
+    if (max === 0) {
+        alert("Please click 'Build My Library' first!");
+        return;
+    }
+    
+    const modalBody = document.getElementById('modal-body');
+    const modalActionBtn = document.getElementById('modal-action-btn');
+
+    document.getElementById('modal-title').innerText = 'Start Quiz Session';
+    
+    modalActionBtn.classList.remove('hidden');
+    modalActionBtn.innerText = 'Start Quiz';
+    modalActionBtn.onclick = startQuiz;
+    
+    modalBody.innerHTML = `
+        <p>Questions in bank: ${max}</p>
+        <div class="input-group">
+            <label for="q-count">Select Questions (1-${max}):</label>
+            <input type="number" id="q-count" value="10" min="1" max="${max}" class="glass-input">
+        </div>
+    `;
+    
+    document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function startQuiz() {
+    const countInput = document.getElementById('q-count');
+    const count = parseInt(countInput.value);
+    const max = State.db.length;
+    
+    if (count < 1 || count > max || isNaN(count)) {
+        alert(`Invalid count. Must be between 1 and ${max}.`);
+        return;
+    }
+    
+    document.getElementById('modal-overlay').classList.add('hidden');
+    
+    setupQuizSession(count);
+    switchView('quiz-view');
+    renderQuestion();
+    startTimer();
+}
+
+function startFlashcards() {
+    if (State.db.length === 0) {
+        alert("Please build your library first!");
+        return;
+    }
+    alert("Flashcards View Initialized! (Simulated)"); 
+}
+
+function generateWorksheets() {
+    if (State.db.length === 0) {
+        alert("Please build your library first!");
+        return;
+    }
+    alert("Worksheets PDF Generated! (Simulated)"); 
+}
+
+// V9.2 Fix: Settings Modal and Key Persistence
 function openSettingsModal() {
     const modalBody = document.getElementById('modal-body');
     const modalActionBtn = document.getElementById('modal-action-btn');
 
     document.getElementById('modal-title').innerText = 'App Settings';
     
-    // Hide action button for settings modal unless needed
-    modalActionBtn.classList.add('hidden');
+    modalActionBtn.classList.remove('hidden');
+    modalActionBtn.innerText = 'Save Settings';
+    modalActionBtn.onclick = saveSettings; 
     
     modalBody.innerHTML = `
         <h3>Image Service (Pexels)</h3>
@@ -42,118 +152,35 @@ function openSettingsModal() {
         </div>
     `;
     
-    // Add event listener directly to input field for real-time persistence
-    document.getElementById('pexels-key').addEventListener('input', saveApiKey);
-
     document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
-// V9.1 UX FIX: Saves API key to local storage immediately upon input
-function saveApiKey(e) {
-    const key = e.target.value.trim();
+function saveSettings() {
+    const keyInput = document.getElementById('pexels-key');
+    if (!keyInput) {
+        document.getElementById('modal-overlay').classList.add('hidden');
+        return;
+    }
+    
+    const key = keyInput.value.trim();
+    
     if (key.length > 10) {
         PEXELS_API_KEY = key;
         localStorage.setItem('pexelsKey', key);
-        console.log("Pexels Key saved successfully to LocalStorage.");
     } else if (key === "") {
         PEXELS_API_KEY = PEXELS_API_KEY_DEFAULT;
         localStorage.removeItem('pexelsKey');
-        console.log("Pexels Key cleared. Using default placeholder.");
     }
+
+    document.getElementById('modal-overlay').classList.add('hidden');
 }
 
-
-// --- IMAGE LOADING FIX (V9.1) ---
+// --- IMAGE LOADING ---
 
 function getPexelsImageUrl(query) {
     if (PEXELS_API_KEY && PEXELS_API_KEY !== PEXELS_API_KEY_DEFAULT) {
-        // Placeholder for Pexels API call (Simulates the fix for CORS/loading)
-        // Note: Actual CORS fix is handled by Service Worker configuration and browser policy.
+        // Simulated success for external image load (CORS/API pipeline)
         return 'https://picsum.photos/400/200?random=' + Math.floor(Math.random() * 100); 
     }
     // Return a local placeholder
-    return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50"><rect fill="#DDD" width="100" height="50"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="8" fill="#555">Visual Aid Placeholder</text></svg>';
-}
-
-// --- QUIZ INTERACTION LOGIC (V9.1 Refinements) ---
-
-function renderQuestion() {
-    const qData = State.sessionSet[State.currentIndex];
-    const sessionQ = State.quizState[State.currentIndex];
-    const container = document.getElementById('quiz-content');
-    
-    // ... (Navigation, image setup remain the same) ...
-
-    document.getElementById('prev-btn').disabled = (State.currentIndex === 0);
-    const nextBtn = document.getElementById('next-btn');
-    
-    // V9.1 UX FIX: Contextual coloring for Review button
-    if (State.currentIndex === State.sessionSet.length - 1) {
-        nextBtn.innerText = 'Review';
-        nextBtn.classList.add('review-state');
-    } else {
-        nextBtn.innerText = 'Next';
-        nextBtn.classList.remove('review-state');
-    }
-    nextBtn.onclick = handleNext;
-    
-    // ... (Inner HTML generation and persistence logic remains the same) ...
-    
-    // Final check for next button enablement
-    if (sessionQ.isCorrect !== null || (sessionQ.answer && sessionQ.answer !== 'SKIPPED')) {
-         document.getElementById('next-btn').disabled = false;
-    } else {
-         document.getElementById('next-btn').disabled = true;
-    }
-    
-    updateProgressBar();
-}
-
-
-// --- REVIEW/SCORECARD LOGIC (V9.1 UX Enhancements) ---
-
-function initiateReview() {
-    clearInterval(State.timerInt);
-    document.getElementById('modal-overlay').classList.add('hidden'); 
-
-    const totalQuestions = State.sessionSet.length;
-    const correctCount = State.quizState.filter(q => q.isCorrect === true).length;
-    
-    document.getElementById('review-score').innerText = `Score: ${correctCount} / ${totalQuestions}`;
-    const totalTime = document.getElementById('timer').innerText;
-    document.getElementById('review-time').innerText = `Total Time: ${totalTime}`;
-
-    const summaryContainer = document.getElementById('review-summary');
-    summaryContainer.innerHTML = '';
-    
-    State.quizState.forEach((sessionQ, index) => {
-        const qData = State.sessionSet[index];
-        let statusText = 'Skipped';
-        let statusClass = 'skipped-card';
-        
-        if (sessionQ.isCorrect === true) {
-            statusText = 'Correct ✅';
-            statusClass = 'correct-card';
-        } else if (sessionQ.isCorrect === false) {
-            statusText = 'Incorrect ❌';
-            statusClass = 'incorrect-card';
-        }
-
-        // V9.1 UX FIX: Improved visual structure for review cards
-        summaryContainer.innerHTML += `
-            <div class="review-card ${statusClass} glass">
-                <h4>Q${index + 1}</h4>
-                <p class="q-preview">${qData.question.substring(0, 70)}...</p>
-                <p><strong>Status:</strong> ${statusText}</p>
-                ${sessionQ.isCorrect !== true ? `
-                    <p><strong>Correct:</strong> ${qData.correct}</p>
-                ` : ''}
-                <p class="source">Source: ${qData.pdf_ref}</p>
-            </div>
-        `;
-    });
-
-    switchView('review-view');
-}
-
-// ... (Other functions remain the same: openExitConfirmation, startQuiz, etc.) ...
+    return 'data:image/svg+xml;utf8
