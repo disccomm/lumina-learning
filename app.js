@@ -1,26 +1,23 @@
-// --- CONFIGURATION ---
-const PEXELS_API_KEY = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM";
+// --- CONFIGURATION & STATE ---
+const PEXELS_API_KEY = "ADD_YOUR_KEY_HERE"; // <--- IMPORTANT: Update this key
 const State = {
     db: [],
     sessionSet: [], 
     currentIndex: 0,
     seconds: 0,
     timerInt: null,
-    quizState: [], // Detailed tracking for persistence, review, and time
+    quizState: [], 
     isPaused: false,
     quizStartTime: 0
 };
 
 // --- INITIALIZATION AND UI BINDINGS ---
 
-// Helper audio function
 function playAudio(type) {
-    // Placeholder for PWA audio feedback
     console.log(`Audio Feedback: ${type}`);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Age slider listener
     const ageRange = document.getElementById('age-range');
     const ageVal = document.getElementById('age-val');
     ageVal.innerText = ageRange.value + ' yrs';
@@ -28,13 +25,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ageVal.innerText = e.target.value + ' yrs';
     });
 
-    // File selection listener
     document.getElementById('pdf-file').addEventListener('change', (e) => {
         const fileName = e.target.files[0] ? e.target.files[0].name : "Tap to Upload PDF";
         document.getElementById('file-status').innerText = fileName;
     });
 
-    // Service Worker registration
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js');
     }
@@ -56,14 +51,11 @@ function processAndLoad() {
     document.getElementById('file-status').innerHTML = "⏳ **Analyzing Content...**";
     processButton.disabled = true;
 
-    // Simulate LLM extraction (2-second delay)
     setTimeout(() => {
-        State.db = generateMockData(50); // Mocks 50 questions
-        
+        State.db = generateMockData(50);
         document.getElementById('action-tiles').classList.remove('hidden');
         document.getElementById('file-status').innerHTML = "✅ **Ready! 50 Questions Loaded.**";
         processButton.disabled = false;
-
     }, 2000); 
 }
 
@@ -72,7 +64,6 @@ function switchView(id) {
     document.getElementById(id).classList.add('active');
 }
 
-// Custom Modal for Quiz Configuration
 function openQuizConfig() {
     const max = State.db.length;
     if (max === 0) {
@@ -108,7 +99,7 @@ function startQuiz() {
     
     document.getElementById('modal-overlay').classList.add('hidden');
     
-    setupQuizSession(count); // Initialize session state
+    setupQuizSession(count);
     switchView('quiz-view');
     renderQuestion();
     startTimer();
@@ -120,7 +111,6 @@ function startFlashcards() {
         return;
     }
     alert("Flashcards View Initialized! (Simulated)"); 
-    // switchView('flashcards-view');
 }
 
 function generateWorksheets() {
@@ -132,14 +122,13 @@ function generateWorksheets() {
 }
 
 
-// --- QUIZ INTERACTION LOGIC (V6.0 Implementation) ---
+// --- QUIZ INTERACTION LOGIC (V8.0 Fixes) ---
 
 function setupQuizSession(count) {
     State.sessionSet = [...State.db].sort(() => 0.5 - Math.random()).slice(0, count);
     State.currentIndex = 0;
-    // Map initial state for persistence and store shuffled options
     State.quizState = State.sessionSet.map((q, index) => ({
-        id: index, // Use index as simple ID for mock data
+        id: index, 
         answer: null, 
         answeredTime: null, 
         isCorrect: null,
@@ -156,13 +145,12 @@ function renderQuestion() {
     const sessionQ = State.quizState[State.currentIndex];
     const container = document.getElementById('quiz-content');
     
-    // Update navigation text
     document.getElementById('prev-btn').disabled = (State.currentIndex === 0);
     const nextBtn = document.getElementById('next-btn');
     nextBtn.innerText = (State.currentIndex === State.sessionSet.length - 1) ? 'Review' : 'Next';
     nextBtn.onclick = handleNext;
     
-    const imageUrl = `https://images.pexels.com/photos/100/nature-red-love-small.jpg?auto=compress&cs=tinysrgb&dpr=1&w=500`; // Placeholder image
+    const imageUrl = `https://images.pexels.com/photos/100/nature-red-love-small.jpg?auto=compress&cs=tinysrgb&dpr=1&w=500`; 
     
     container.innerHTML = `
         <div class="question-card glass">
@@ -179,21 +167,31 @@ function renderQuestion() {
         </div>
     `;
 
-    // Persistence and locking logic
+    // --- CRITICAL FIX START: Persistence and Locking Logic (Resolves Prev button hang) ---
+    
     if (sessionQ.isCorrect !== null) {
-        // If answered, re-apply visual state
+        // SCENARIO 1: Question is already locked (Answered and submitted)
+        
         const selectedBtn = Array.from(document.querySelectorAll('.opt-btn')).find(b => b.innerText === sessionQ.answer);
         if (selectedBtn) {
-            handleVisualFeedback(selectedBtn, sessionQ.isCorrect, qData.correct, true);
+            handleVisualFeedback(selectedBtn, sessionQ.isCorrect, qData.correct, true); // true for isReview/isLocked
         }
-        disableQuestionInteraction(true);
-    } else if (sessionQ.answer && sessionQ.answer !== 'SKIPPED') {
-         // If selected but not locked (e.g., came back via Prev button)
-         const selectedBtn = Array.from(document.querySelectorAll('.opt-btn')).find(b => b.innerText === sessionQ.answer);
-         if (selectedBtn) selectedBtn.classList.add('selected');
-    } else {
-        document.getElementById('next-btn').disabled = true;
-        disableQuestionInteraction(false);
+        disableQuestionInteraction(true); // Lock all buttons
+        document.getElementById('next-btn').disabled = false;
+    } 
+    else {
+        // SCENARIO 2: Question is UNANSWERED (or only selected, not submitted)
+        
+        if (sessionQ.answer && sessionQ.answer !== 'SKIPPED') {
+             const selectedBtn = Array.from(document.querySelectorAll('.opt-btn')).find(b => b.innerText === sessionQ.answer);
+             if (selectedBtn) selectedBtn.classList.add('selected');
+             document.getElementById('next-btn').disabled = false;
+        } else {
+             document.getElementById('next-btn').disabled = true;
+        }
+        
+        // Ensure interaction is fully enabled
+        disableQuestionInteraction(false); 
     }
     
     updateProgressBar();
@@ -202,11 +200,9 @@ function renderQuestion() {
 function selectAnswer(btn, choice) {
     const sessionQ = State.quizState[State.currentIndex];
     
-    // Clear previous selection visually and in state
     document.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected', 'wrong', 'right'));
     btn.classList.add('selected');
     
-    // Update temporary state for persistence
     sessionQ.answer = choice; 
     document.getElementById('next-btn').disabled = false;
 }
@@ -220,15 +216,12 @@ function handleNext() {
         const choice = selectedBtn.innerText;
         const isCorrect = (choice === qData.correct);
         
-        // Lock Answer and update state
         sessionQ.answer = choice;
         sessionQ.isCorrect = isCorrect;
         sessionQ.answeredTime = Date.now() - State.quizStartTime; 
         
-        // Provide immediate visual feedback on the current question before moving
         handleVisualFeedback(selectedBtn, isCorrect, qData.correct, false);
         
-        // Short delay to allow visual feedback before transition
         setTimeout(() => {
             if (State.currentIndex < State.sessionSet.length - 1) {
                 State.currentIndex++;
@@ -239,7 +232,6 @@ function handleNext() {
         }, 500);
         
     } else if (State.currentIndex === State.sessionSet.length - 1) {
-        // Allow moving to review even if the last question is skipped
         initiateReview();
     } else {
         alert("Please select an answer or use the Skip button.");
@@ -247,7 +239,6 @@ function handleNext() {
 }
 
 function handleVisualFeedback(selectedBtn, isCorrect, correctAnswer, isReview) {
-    // Show correct/wrong answer
     selectedBtn.classList.remove('selected');
     if (isCorrect) {
         selectedBtn.classList.add('right');
@@ -255,7 +246,6 @@ function handleVisualFeedback(selectedBtn, isCorrect, correctAnswer, isReview) {
     } else {
         selectedBtn.classList.add('wrong');
         if (!isReview) playAudio('error');
-        // Highlight the correct option in green
         const correctBtn = Array.from(document.querySelectorAll('.opt-btn')).find(b => b.innerText === correctAnswer);
         if (correctBtn) correctBtn.classList.add('right');
     }
@@ -268,7 +258,6 @@ function disableQuestionInteraction(lock) {
 }
 
 function clearSelection() {
-    // Clear selection if not locked
     document.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected', 'wrong', 'right'));
     document.getElementById('next-btn').disabled = true;
     State.quizState[State.currentIndex].answer = null;
@@ -277,7 +266,6 @@ function clearSelection() {
 function skipQuestion() {
     const sessionQ = State.quizState[State.currentIndex];
     if (sessionQ.isCorrect === null) {
-        // Mark as skipped
         sessionQ.answer = 'SKIPPED';
         sessionQ.isCorrect = null;
         sessionQ.answeredTime = 0;
@@ -298,12 +286,39 @@ function prevQuestion() {
     }
 }
 
+// V8.0 FIX: Custom Modal for Quiz Exit Confirmation
+function openExitConfirmation() {
+    // If the quiz is running, pause the timer
+    if (State.timerInt) {
+        State.isPaused = true;
+        document.getElementById('pause-btn').innerText = '▶️';
+    }
+
+    const modalBody = document.getElementById('modal-body');
+    document.getElementById('modal-title').innerText = 'End Session?';
+    
+    modalBody.innerHTML = `
+        <p>Are you sure you want to exit the quiz? Your current progress will be lost.</p>
+    `;
+    
+    document.getElementById('modal-action-btn').innerText = 'Exit to Hub';
+    document.getElementById('modal-action-btn').onclick = initiateReview;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+
 function initiateReview() {
     clearInterval(State.timerInt);
-    // This is the placeholder for the comprehensive review screen
+    
+    // Ensure modal is closed if it was open
+    document.getElementById('modal-overlay').classList.add('hidden'); 
+
     const correctCount = State.quizState.filter(q => q.isCorrect === true).length;
-    alert(`Quiz Complete! Score: ${correctCount}/${State.sessionSet.length}. Initiating Review Mode.`);
-    switchView('hub-view'); // Fallback to hub for now
+    
+    alert(`Quiz Complete! Score: ${correctCount}/${State.sessionSet.length}. Returning to Hub.`);
+
+    // Reset view
+    switchView('hub-view'); 
 }
 
 function startTimer() {
@@ -336,7 +351,7 @@ function generateMockData(num) {
     return Array.from({length: num}, (_, i) => ({
         question: `Sample Concept ${i+1}: What is the primary function of this subject?`,
         options: ["Option A", "Option B", "Option C", "Option D"],
-        correct: (i % 3 === 0) ? "Option B" : "Option A", // Ensures mix of correct answers
+        correct: (i % 3 === 0) ? "Option B" : "Option A", 
         pdf_ref: `Page ${Math.floor(i/2) + 1}`,
         pexels_query: "education" 
     }));
