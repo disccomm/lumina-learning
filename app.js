@@ -1,9 +1,10 @@
-// --- CONFIGURATION & STATE (V29.0 - Pexels Re-integrated, All Pop-up Issues Fixed) ---
+// --- CONFIGURATION & STATE (V30.0 - StatusCallback Error & UI Refreshed) ---
 
 const SELECTED_MODEL = "Phi-3-mini-4k-instruct-q4f16_1-MLC"; 
 
 // PEXELS CONFIG (USER MUST REPLACE THIS KEY)
 // WARNING: This key is exposed in the front-end code.
+
 const PEXELS_API_KEY_DEFAULT = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
 
 // App Settings - Loaded from Local Storage
@@ -46,13 +47,9 @@ function getKnowledgeZone(age) {
 }
 
 function applyTheme() {
-    // 1. Apply Dark Mode Class
     document.body.classList.toggle('dark-mode', isDarkMode);
-
-    // 2. Apply Font Size Variable
     document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
 
-    // 3. Update Inputs (for Settings Modal)
     const rangeInput = document.getElementById('font-size-range');
     if (rangeInput) rangeInput.value = fontSize;
     
@@ -61,8 +58,10 @@ function applyTheme() {
 }
 
 /**
- * FIX: This is the function that had the statusCallback error.
- * The inner function call now correctly takes the statusCallback as the second argument.
+ * PDF TEXT EXTRACTION (FIXED statusCallback ISSUE)
+ * @param {File} file 
+ * @param {Function} statusCallback 
+ * @returns {Promise<string>}
  */
 async function extractTextFromPDF(file, statusCallback) {
     try {
@@ -74,7 +73,7 @@ async function extractTextFromPDF(file, statusCallback) {
         const maxPages = Math.min(pdf.numPages, 5); 
 
         for (let i = 1; i <= maxPages; i++) {
-            // Correct call to the statusCallback function
+            // This call is now confirmed to be correct.
             statusCallback(`📄 Reading Page ${i}/${maxPages}...`); 
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
@@ -88,14 +87,13 @@ async function extractTextFromPDF(file, statusCallback) {
     }
 }
 
-// --- PEXELS IMAGE UTILITY (NEW) ---
+// --- PEXELS IMAGE UTILITY ---
 async function getPexelsImage(query) {
     if (PEXELS_API_KEY === "YOUR_PEXELS_API_KEY_HERE") {
         console.warn("Pexels API key not set. Skipping image fetch.");
         return null;
     }
 
-    // Search Pexels for an image related to the topic
     const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
     
     try {
@@ -111,7 +109,6 @@ async function getPexelsImage(query) {
         const data = await response.json();
 
         if (data.photos.length > 0) {
-            // Return the URL of a medium-sized image
             return data.photos[0].src.medium; 
         }
         return null;
@@ -145,7 +142,6 @@ async function initializeEngine(statusCallback) {
 async function AIExtractionService(topic, aiStatus) {
     const engine = await initializeEngine(aiStatus);
     
-    // Start fetching the image while the AI model is setting up
     const imagePromise = getPexelsImage(topic);
     
     const age = localStorage.getItem('ageRange') || 10;
@@ -182,10 +178,8 @@ async function AIExtractionService(topic, aiStatus) {
         const jsonStr = raw.substring(start, end + 1);
         const questions = JSON.parse(jsonStr);
         
-        // Wait for image fetch
         const imageUrl = await imagePromise;
 
-        // Map and inject image URL into the FIRST question
         const finalQuestions = questions.map((q, i) => {
             const question = {
                 id: `gen-${i}`,
@@ -195,7 +189,6 @@ async function AIExtractionService(topic, aiStatus) {
                 explanation: q.explanation || "Correct answer derived from document.",
                 question_topic: topic
             };
-            // Inject image into the first question only, for demonstration
             if (i === 0 && imageUrl) {
                 question.imageUrl = imageUrl;
             }
@@ -211,7 +204,7 @@ async function AIExtractionService(topic, aiStatus) {
 }
 
 
-// --- MAIN WORKFLOW ---
+// --- MAIN WORKFLOW (FIXED CALLBACK PASSING) ---
 async function processAndLoad() {
     const topic = document.getElementById('topic-name').value;
     const fileInput = document.getElementById('pdf-file');
@@ -219,23 +212,20 @@ async function processAndLoad() {
     const btn = document.getElementById('build-library-btn');
 
     if (!topic || !fileInput.files[0]) {
-        openConfirmationModal("Missing Input", "Please enter a Topic Name and select a PDF file.", () => closeModal());
+        openConfirmationModal("Missing Input", "Please enter a Topic Name and select a PDF file.", closeModal);
         return;
     }
 
     btn.disabled = true;
     
     try {
-        // Step 1: Read PDF (Fixed call to extractTextFromPDF)
+        // FIX: Passing the innerText assignment function directly as the callback
         State.extractedText = await extractTextFromPDF(fileInput.files[0], (msg) => aiStatus.innerText = msg);
         
-        // Step 2: Generate Questions (This now includes Pexels image fetching)
         State.db = await AIExtractionService(topic, aiStatus);
         
-        // Step 3: Success State
         aiStatus.innerText = `✅ Success! ${State.db.length} Questions Ready.`;
         
-        // Enable Quiz/Flashcard/Worksheet Tiles 
         document.getElementById('action-tiles').querySelectorAll('.action-tile').forEach(t => t.classList.add('active'));
         
     } catch (error) {
@@ -250,7 +240,6 @@ async function processAndLoad() {
 document.addEventListener('DOMContentLoaded', () => {
     applyTheme();
 
-    // Set User Name in Header
     const welcomeEl = document.querySelector('header h4'); 
     if (welcomeEl) {
         welcomeEl.innerHTML = `Welcome back, <br><span style="font-size:1.2em; color:var(--primary-color);">${userName}</span>`;
@@ -272,11 +261,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Bind PDF Name Display and clear on reload (FIX: File name not clearing)
+    // Bind PDF Name Display and clear on reload
     const pdfFile = document.getElementById('pdf-file');
     const fileStatus = document.getElementById('file-status');
     if (pdfFile && fileStatus) {
-        // Clear file status on initial load
         fileStatus.innerText = "Tap to Upload PDF"; 
 
         pdfFile.addEventListener('change', (e) => {
@@ -286,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Bind the main button explicitly
     const buildButton = document.getElementById('build-library-btn');
     if (buildButton) {
         buildButton.onclick = processAndLoad;
@@ -294,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// --- MODAL UTILITIES (FIX: Replaces all alert/confirm pop-ups) ---
+// --- MODAL UTILITIES (No more browser alerts) ---
 
 function closeModal() {
     document.getElementById('modal-overlay').classList.add('hidden');
@@ -302,10 +289,6 @@ function closeModal() {
 
 /**
  * Universal modal function for confirmations and custom alerts.
- * @param {string} title 
- * @param {string} message 
- * @param {Function} onConfirm - Function to run when user clicks the primary button.
- * @param {boolean} isConfirmation - If true, show two buttons (Confirm/Cancel). If false, show one (OK).
  */
 function openConfirmationModal(title, message, onConfirm, isConfirmation = false) {
     const modal = document.getElementById('modal-overlay');
@@ -316,13 +299,13 @@ function openConfirmationModal(title, message, onConfirm, isConfirmation = false
     
     let buttonsHtml = '';
     
-    // NOTE: Function name is passed as a string, so we must use a function that is available globally (like signOut)
-    // or use a wrapper function in the case of switchView
-    const confirmAction = onConfirm.name ? `${onConfirm.name}()` : `(${onConfirm.toString().replace('()', '')})()`;
-    
+    // We use a safe wrapper to execute the function and close the modal
+    const wrapperFunction = () => { onConfirm(); closeModal(); };
+    window.tempConfirmAction = wrapperFunction;
+
     if (isConfirmation) {
         buttonsHtml = `
-            <button class="danger-btn" style="margin-right: 10px; width: 48%;" onclick="${confirmAction}">
+            <button class="danger-btn" style="margin-right: 10px; width: 48%;" onclick="tempConfirmAction()">
                 Yes, Continue
             </button>
             <button class="close-btn" style="width: 48%;" onclick="closeModal()">
@@ -331,7 +314,7 @@ function openConfirmationModal(title, message, onConfirm, isConfirmation = false
         `;
     } else {
         buttonsHtml = `
-            <button class="primary-btn" onclick="${confirmAction}">
+            <button class="primary-btn" onclick="tempConfirmAction()">
                 OK
             </button>
         `;
@@ -354,7 +337,7 @@ function openSettingsModal() {
     const body = document.getElementById('modal-body');
     const title = document.getElementById('modal-title');
     
-    title.innerText = "App Settings";
+    title.innerText = "Settings";
     
     // Settings body content
     body.innerHTML = `
@@ -385,12 +368,11 @@ function openSettingsModal() {
 }
 
 function openSignOutConfirmation() {
-    closeModal(); // Close settings first
-    // Open confirmation modal (isConfirmation = true)
+    closeModal();
     openConfirmationModal(
         "Reset App", 
         "Are you sure you want to sign out? This will permanently delete all saved settings and generated questions.", 
-        signOut, // Function to call on confirmation
+        signOut, 
         true 
     );
 }
@@ -404,7 +386,7 @@ function signOut() {
 // --- QUIZ & UI NAVIGATION ---
 function startQuiz() {
     if (State.db.length === 0) {
-        openConfirmationModal("No Library Loaded", "Please load your library by clicking 'Build My Library' first!", () => closeModal());
+        openConfirmationModal("No Library Loaded", "Please load your library by clicking 'Build My Library' first!", closeModal);
         return;
     }
     
@@ -420,7 +402,6 @@ function renderQuestion() {
     const q = State.sessionSet[State.currentIndex];
     const sq = State.quizState[State.currentIndex];
     
-    // PEXELS INTEGRATION: Display image if URL exists
     const imageHtml = q.imageUrl ? 
         `<img src="${q.imageUrl}" alt="Visual aid for ${q.question_topic}" 
              style="width: 100%; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 15px;">
@@ -474,11 +455,10 @@ function switchView(id) {
 }
 
 function openExitConfirmation() {
-    // Open confirmation modal for quiz exit
     openConfirmationModal(
         "Exit Quiz", 
         "Are you sure you want to exit? Your current quiz progress will be lost.", 
-        () => { closeModal(); switchView('hub-view'); }, // Function to run if confirmed
-        true // Is a confirmation
+        () => switchView('hub-view'),
+        true
     );
 }

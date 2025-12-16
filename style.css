@@ -1,25 +1,25 @@
 :root {
-    --primary-color: #6366f1;
+    --primary-color: #6366f1; /* Indigo */
     --primary-hover: #4f46e5;
-    --bg-color: #f8fafc;
-    --text-color: #1e293b;
+    --bg-color: #f8fafc; /* Light BG */
+    --text-color: #1e293b; /* Dark Text */
     --card-bg: #ffffff;
-    --glass-bg: rgba(255, 255, 255, 0.95);
     --border-color: #e2e8f0;
-    --base-font-size: 16px; /* Default Base Size */
+    --shadow-light: 0 8px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+    --base-font-size: 16px; 
 }
 
 body.dark-mode {
-    --primary-color: #818cf8;
+    --primary-color: #818cf8; /* Lighter Indigo */
     --primary-hover: #6366f1;
-    --bg-color: #0f172a;
-    --text-color: #f1f5f9;
-    --card-bg: #1e293b;
-    --glass-bg: rgba(30, 41, 59, 0.95);
+    --bg-color: #0f172a; /* Dark BG */
+    --text-color: #f1f5f9; /* Light Text */
+    --card-bg: #1e293b; /* Dark Card BG */
     --border-color: #334155;
+    --shadow-light: 0 8px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
 }
 
-/* FIX: This ensures all text scales with the slider */
+/* Base Styling */
 html {
     font-size: var(--base-font-size); 
 }
@@ -34,10 +34,9 @@ body {
     font-size: 1rem; 
 }
 
-/* FIX: This centers the app content on large screens (desktop view fix) */
 .container {
     max-width: 600px;
-    margin: 0 auto; /* Center the container */
+    margin: 0 auto; 
     padding: 20px;
     min-height: 100vh;
     display: flex;
@@ -54,167 +53,196 @@ header {
 }
 
 .logo {
-    font-size: 1.5rem;
-    font-weight: 800;
+    font-size: 1.8rem; /* Slightly larger logo */
+    font-weight: 900;
     color: var(--text-color);
     letter-spacing: -0.05em;
 }
 
 .settings-btn {
-    background: none;
-    border: none;
-    color: var(--text-color);
-    cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-size: 0.75rem;
+    /* Style remains functional and clean */
+    background: none; border: none; color: var(--text-color); cursor: pointer;
+    opacity: 0.7; transition: opacity 0.2s; display: flex; flex-direction: column;
+    align-items: center; font-size: 0.75rem;
 }
 .settings-btn i { font-size: 1.2rem; margin-bottom: 2px; }
 .settings-btn:hover { opacity: 1; }
 
-/* Cards & Glass Effect */
+/* --- UI/UX OVERHAUL: Glass/Card Elements --- */
 .glass-panel {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 24px;
-    padding: 24px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-    transition: transform 0.2s;
+    border-radius: 28px; /* Softer, rounder corners */
+    padding: 30px; /* More padding */
+    box-shadow: var(--shadow-light); /* Enhanced shadow for depth */
+    margin-bottom: 25px;
+    transition: all 0.3s ease-in-out;
 }
 
-/* Form Elements */
-input[type="text"], input[type="number"], select {
+/* Input Fields */
+input[type="text"] {
     width: 100%;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 14px; /* More vertical padding */
+    border-radius: 14px;
     border: 1px solid var(--border-color);
     background: var(--bg-color);
     color: var(--text-color);
     margin-bottom: 15px;
     font-size: 1rem;
     box-sizing: border-box;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+input[type="text"]:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    background: var(--card-bg); /* Lightens when focused */
 }
 
 /* Range Slider Styling */
 input[type=range] {
     width: 100%;
-    margin: 10px 0;
+    margin: 15px 0;
     accent-color: var(--primary-color);
 }
 
-/* Buttons */
+/* --- UI/UX OVERHAUL: Primary Button --- */
 .primary-btn {
     width: 100%;
-    padding: 16px;
+    padding: 18px; /* Larger hit area */
     background-color: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 16px;
-    font-size: 1rem;
-    font-weight: 600;
+    border-radius: 18px; /* Matches input radius */
+    font-size: 1.1rem; /* Slightly larger text */
+    font-weight: 700;
     cursor: pointer;
-    transition: transform 0.1s, background-color 0.2s;
+    transition: transform 0.1s, background-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); /* Primary color shadow */
 }
-.primary-btn:active { transform: scale(0.98); }
-.primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.primary-btn:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 6px 12px rgba(99, 102, 241, 0.6);
+}
+.primary-btn:active { transform: scale(0.98); box-shadow: 0 2px 5px rgba(99, 102, 241, 0.4); }
+.primary-btn:disabled { 
+    opacity: 0.5; 
+    cursor: not-allowed; 
+    box-shadow: none;
+    background-color: var(--primary-color);
+}
 
-/* Action Tiles (Quiz/Flashcards) */
+
+/* --- UI/UX OVERHAUL: Action Tiles --- */
 .action-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 15px; /* Larger gap */
     margin-top: 20px;
 }
 .action-tile {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 20px 10px;
+    border-radius: 20px;
+    padding: 25px 10px;
     text-align: center;
     cursor: pointer;
     transition: all 0.2s;
-    opacity: 0.5; 
-    pointer-events: none; /* Disabled by default */
+    opacity: 0.4; 
+    pointer-events: none;
+    font-weight: 600;
 }
 .action-tile.active {
     opacity: 1;
     pointer-events: auto;
     border-color: var(--primary-color);
-    background: rgba(99, 102, 241, 0.1); /* Light tint */
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05)); /* Subtle gradient */
+    box-shadow: 0 4px 8px rgba(99, 102, 241, 0.2);
 }
-.action-tile:hover { transform: translateY(-2px); }
-.tile-icon { font-size: 1.5rem; display: block; margin-bottom: 8px; }
+.action-tile:hover { 
+    transform: scale(1.03); 
+    box-shadow: 0 6px 15px rgba(99, 102, 241, 0.3);
+}
+.tile-icon { font-size: 1.8rem; display: block; margin-bottom: 10px; color: var(--primary-color);}
+
 
 /* Modal */
 .modal-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); /* Darker overlay */
+    display: flex; justify-content: center; align-items: center;
     z-index: 1000;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px); /* Stronger blur */
 }
 .modal-overlay.hidden { display: none; }
 .modal-content {
     background: var(--card-bg);
-    padding: 30px;
-    border-radius: 24px;
+    padding: 40px 30px; /* More spacious */
+    border-radius: 30px;
     width: 90%;
-    max-width: 400px;
+    max-width: 450px;
     text-align: center;
     border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-light);
 }
 
 /* Settings Specifics */
-.input-group {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    text-align: left;
-}
-/* Sign out button is now specifically the danger button */
 .danger-btn {
     background-color: #ef4444;
     color: white;
     margin-top: 20px;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 14px;
+    border-radius: 14px;
     border: none;
     width: 100%;
     cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
 }
+.danger-btn:hover { background-color: #dc2626; }
+
 .close-btn {
     background: var(--bg-color);
     color: var(--text-color);
     border: 1px solid var(--border-color);
     margin-top: 10px;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 14px;
+    border-radius: 14px;
     width: 100%;
     cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
 }
+.close-btn:hover { background: var(--border-color); }
+
 
 /* Quiz Views */
-.view { display: none; }
-.view.active { display: block; animation: fadeIn 0.3s; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-.options-list { display: flex; flex-direction: column; gap: 10px; }
+.options-list { display: flex; flex-direction: column; gap: 12px; }
 .opt-btn {
-    padding: 15px;
+    padding: 18px; /* Larger option button */
     text-align: left;
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     background: var(--card-bg);
     color: var(--text-color);
-    border-radius: 12px;
+    border-radius: 16px;
     cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
 }
-.opt-btn.right { background: #dcfce7; border-color: #22c55e; color: #14532d; }
-.opt-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #7f1d1d; }
+.opt-btn:not([disabled]):hover {
+    border-color: var(--primary-color);
+    background: rgba(99, 102, 241, 0.05);
+}
+.opt-btn.right { 
+    background: #dcfce7; 
+    border-color: #22c55e; 
+    color: #14532d; 
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.4); 
+}
+.opt-btn.wrong { 
+    background: #fee2e2; 
+    border-color: #ef4444; 
+    color: #7f1d1d;
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); 
+}
