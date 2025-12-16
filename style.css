@@ -5,7 +5,8 @@
     --text-color: #1e293b; /* Dark Text */
     --card-bg: #ffffff;
     --border-color: #e2e8f0;
-    --shadow-light: 0 8px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+    --shadow-base: 0 4px 10px -3px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+    --shadow-primary: 0 0 0 3px rgba(99, 102, 241, 0.3); /* Focus ring effect */
     --base-font-size: 16px; 
 }
 
@@ -16,7 +17,8 @@ body.dark-mode {
     --text-color: #f1f5f9; /* Light Text */
     --card-bg: #1e293b; /* Dark Card BG */
     --border-color: #334155;
-    --shadow-light: 0 8px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+    --shadow-base: 0 4px 10px -3px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    --shadow-primary: 0 0 0 3px rgba(129, 140, 248, 0.4);
 }
 
 /* Base Styling */
@@ -53,14 +55,13 @@ header {
 }
 
 .logo {
-    font-size: 1.8rem; /* Slightly larger logo */
+    font-size: 1.8rem; 
     font-weight: 900;
     color: var(--text-color);
     letter-spacing: -0.05em;
 }
 
 .settings-btn {
-    /* Style remains functional and clean */
     background: none; border: none; color: var(--text-color); cursor: pointer;
     opacity: 0.7; transition: opacity 0.2s; display: flex; flex-direction: column;
     align-items: center; font-size: 0.75rem;
@@ -72,9 +73,9 @@ header {
 .glass-panel {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 28px; /* Softer, rounder corners */
-    padding: 30px; /* More padding */
-    box-shadow: var(--shadow-light); /* Enhanced shadow for depth */
+    border-radius: 28px; 
+    padding: 30px; 
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15); /* Stronger overall shadow */
     margin-bottom: 25px;
     transition: all 0.3s ease-in-out;
 }
@@ -82,7 +83,7 @@ header {
 /* Input Fields */
 input[type="text"] {
     width: 100%;
-    padding: 14px; /* More vertical padding */
+    padding: 14px; 
     border-radius: 14px;
     border: 1px solid var(--border-color);
     background: var(--bg-color);
@@ -90,12 +91,13 @@ input[type="text"] {
     margin-bottom: 15px;
     font-size: 1rem;
     box-sizing: border-box;
-    transition: border-color 0.2s, background-color 0.2s;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 input[type="text"]:focus {
     border-color: var(--primary-color);
     outline: none;
-    background: var(--card-bg); /* Lightens when focused */
+    background: var(--card-bg); 
+    box-shadow: var(--shadow-primary);
 }
 
 /* Range Slider Styling */
@@ -105,29 +107,39 @@ input[type=range] {
     accent-color: var(--primary-color);
 }
 
+/* PDF Upload Area specific styling */
+.file-upload-area {
+    transition: all 0.2s;
+    background: var(--bg-color);
+}
+.file-upload-area:hover {
+    background: var(--border-color);
+}
+
 /* --- UI/UX OVERHAUL: Primary Button --- */
 .primary-btn {
     width: 100%;
-    padding: 18px; /* Larger hit area */
-    background-color: var(--primary-color);
+    padding: 18px; 
+    background-image: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
     color: white;
     border: none;
-    border-radius: 18px; /* Matches input radius */
-    font-size: 1.1rem; /* Slightly larger text */
+    border-radius: 18px; 
+    font-size: 1.1rem; 
     font-weight: 700;
     cursor: pointer;
-    transition: transform 0.1s, background-color 0.2s, box-shadow 0.2s;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); /* Primary color shadow */
+    transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+    box-shadow: 0 6px 15px rgba(99, 102, 241, 0.5); /* Prominent primary shadow */
 }
 .primary-btn:hover {
-    background-color: var(--primary-hover);
-    box-shadow: 0 6px 12px rgba(99, 102, 241, 0.6);
+    opacity: 0.95;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.7);
 }
 .primary-btn:active { transform: scale(0.98); box-shadow: 0 2px 5px rgba(99, 102, 241, 0.4); }
 .primary-btn:disabled { 
-    opacity: 0.5; 
+    opacity: 0.6; 
     cursor: not-allowed; 
     box-shadow: none;
+    background-image: none;
     background-color: var(--primary-color);
 }
 
@@ -136,7 +148,7 @@ input[type=range] {
 .action-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 15px; /* Larger gap */
+    gap: 15px; 
     margin-top: 20px;
 }
 .action-tile {
@@ -155,7 +167,7 @@ input[type=range] {
     opacity: 1;
     pointer-events: auto;
     border-color: var(--primary-color);
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05)); /* Subtle gradient */
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05)); 
     box-shadow: 0 4px 8px rgba(99, 102, 241, 0.2);
 }
 .action-tile:hover { 
@@ -168,21 +180,21 @@ input[type=range] {
 /* Modal */
 .modal-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7); /* Darker overlay */
+    background: rgba(0,0,0,0.7); 
     display: flex; justify-content: center; align-items: center;
     z-index: 1000;
-    backdrop-filter: blur(8px); /* Stronger blur */
+    backdrop-filter: blur(8px); 
 }
 .modal-overlay.hidden { display: none; }
 .modal-content {
     background: var(--card-bg);
-    padding: 40px 30px; /* More spacious */
+    padding: 40px 30px; 
     border-radius: 30px;
     width: 90%;
     max-width: 450px;
     text-align: center;
     border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-light);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 /* Settings Specifics */
@@ -218,7 +230,7 @@ input[type=range] {
 /* Quiz Views */
 .options-list { display: flex; flex-direction: column; gap: 12px; }
 .opt-btn {
-    padding: 18px; /* Larger option button */
+    padding: 18px; 
     text-align: left;
     border: 2px solid var(--border-color);
     background: var(--card-bg);

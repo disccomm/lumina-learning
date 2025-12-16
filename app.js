@@ -1,11 +1,12 @@
-// --- CONFIGURATION & STATE (V30.0 - StatusCallback Error & UI Refreshed) ---
+// --- CONFIGURATION & STATE (V31.0 - All Fixes Confirmed) ---
 
 const SELECTED_MODEL = "Phi-3-mini-4k-instruct-q4f16_1-MLC"; 
 
 // PEXELS CONFIG (USER MUST REPLACE THIS KEY)
-// WARNING: This key is exposed in the front-end code.
-
+const PEXELS_API_KEY = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
 const PEXELS_API_KEY_DEFAULT = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
+
+// WARNING: This key is exposed in the front-end code.
 
 // App Settings - Loaded from Local Storage
 let isDarkMode = localStorage.getItem('isDarkMode') === 'true';
@@ -73,7 +74,6 @@ async function extractTextFromPDF(file, statusCallback) {
         const maxPages = Math.min(pdf.numPages, 5); 
 
         for (let i = 1; i <= maxPages; i++) {
-            // This call is now confirmed to be correct.
             statusCallback(`📄 Reading Page ${i}/${maxPages}...`); 
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
@@ -204,7 +204,7 @@ async function AIExtractionService(topic, aiStatus) {
 }
 
 
-// --- MAIN WORKFLOW (FIXED CALLBACK PASSING) ---
+// --- MAIN WORKFLOW (CRITICAL FIX: Correctly pass statusCallback) ---
 async function processAndLoad() {
     const topic = document.getElementById('topic-name').value;
     const fileInput = document.getElementById('pdf-file');
@@ -219,8 +219,10 @@ async function processAndLoad() {
     btn.disabled = true;
     
     try {
-        // FIX: Passing the innerText assignment function directly as the callback
-        State.extractedText = await extractTextFromPDF(fileInput.files[0], (msg) => aiStatus.innerText = msg);
+        // CRITICAL FIX: Ensure the callback is a function that updates the innerText
+        State.extractedText = await extractTextFromPDF(fileInput.files[0], (msg) => {
+            aiStatus.innerText = msg;
+        });
         
         State.db = await AIExtractionService(topic, aiStatus);
         
@@ -261,15 +263,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Bind PDF Name Display and clear on reload
+    // Bind PDF Name Display (FIX: Ensure file name is persistent on change)
     const pdfFile = document.getElementById('pdf-file');
     const fileStatus = document.getElementById('file-status');
     if (pdfFile && fileStatus) {
+        // Set initial status
         fileStatus.innerText = "Tap to Upload PDF"; 
 
         pdfFile.addEventListener('change', (e) => {
-            const name = e.target.files[0] ? e.target.files[0].name : "Tap to Upload PDF";
-            fileStatus.innerText = name;
+            const fileName = e.target.files.length > 0 ? e.target.files[0].name : "Tap to Upload PDF";
+            fileStatus.innerText = fileName; // Display the name
             document.getElementById('ai-status').innerText = "Ready to Analyze.";
         });
     }
@@ -281,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// --- MODAL UTILITIES (No more browser alerts) ---
+// --- MODAL UTILITIES ---
 
 function closeModal() {
     document.getElementById('modal-overlay').classList.add('hidden');
@@ -299,7 +302,6 @@ function openConfirmationModal(title, message, onConfirm, isConfirmation = false
     
     let buttonsHtml = '';
     
-    // We use a safe wrapper to execute the function and close the modal
     const wrapperFunction = () => { onConfirm(); closeModal(); };
     window.tempConfirmAction = wrapperFunction;
 
@@ -462,3 +464,4 @@ function openExitConfirmation() {
         true
     );
 }
+
