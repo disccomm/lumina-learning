@@ -150,6 +150,21 @@ input[type="text"]:focus { border-color: var(--primary); outline: none; }
 .action-btn.secondary { background: rgba(255,255,255,0.1); box-shadow: none; border: 1px solid rgba(255,255,255,0.1); }
 .action-btn.danger { background: rgba(255, 68, 85, 0.2); color: var(--error); border: 1px solid var(--error); box-shadow: none; margin-bottom: 10px; }
 
+/* New Clear Button */
+.clear-btn {
+    background: transparent;
+    color: var(--text-sub);
+    border: none;
+    text-align: right;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: -10px; /* Pull it up closer to the upload area */
+    transition: color 0.2s;
+}
+.clear-btn:hover { color: var(--error); }
+.clear-btn i { margin-right: 5px; }
+
+
 /* Quiz Styles */
 .options-list { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
 .option-btn {
@@ -192,16 +207,74 @@ input[type="text"]:focus { border-color: var(--primary); outline: none; }
 .progress-track { background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #F42F8C, #6C5DD3); transition: width 0.3s ease-out; }
 
+.feedback-box {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.1);
+    border-left: 5px solid var(--accent);
+    color: var(--text-sub);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+.feedback-box .icon { margin-right: 8px; font-size: 1.1em; }
 
-/* Modal */
+
+/* Modal & Summary */
 .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.8);
     display: flex; align-items: center; justify-content: center; z-index: 100;
     animation: fadeIn 0.2s;
 }
 .modal-content {
-    width: 90%; max-width: 350px; padding: 25px; border-radius: 24px;
+    width: 90%; max-width: 400px; padding: 25px; border-radius: 24px;
     display: flex; flex-direction: column; gap: 15px;
+    max-height: 90vh; /* Allow scrolling */
+}
+.modal-content h1 { margin: 0; font-size: 2.5rem; }
+
+.summary-results-container {
+    background: rgba(0,0,0,0.2);
+    padding: 15px;
+    border-radius: var(--radius-md);
+    max-height: 30vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
+.summary-results-container h4 { margin-top: 0; color: var(--text-sub); }
+
+.summary-item {
+    padding: 10px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.1);
+    display: grid;
+    grid-template-columns: 1fr 20px;
+    gap: 10px;
+}
+.summary-item:last-child { border-bottom: none; }
+.summary-item.correct .summary-icon { color: var(--success); }
+.summary-item.wrong .summary-icon { color: var(--error); }
+.summary-answer { font-size: 0.8rem; color: var(--text-sub); margin-top: 5px; }
+
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    font-weight: 600;
+    z-index: 101;
+    opacity: 0;
+    transition: opacity 0.3s, background 0.3s;
+}
+.toast:not(.hidden) { opacity: 1; animation: slideUp 0.3s forwards; }
+.toast.info { background: var(--primary); }
+.toast.success { background: var(--success); }
+.toast.warning { background: var(--error); }
+
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { 0% { bottom: 0; opacity: 0; } 100% { bottom: 20px; opacity: 1; } }

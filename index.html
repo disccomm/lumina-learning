@@ -64,6 +64,8 @@
                         <span>Tap to browse files</span>
                     </div>
                 </div>
+                <button class="clear-btn" id="clear-source-btn"><i class="fas fa-trash-alt"></i> Clear Source</button>
+
 
                 <button class="action-btn" id="generate-btn">
                     <span class="btn-content">
@@ -105,17 +107,48 @@
 
     <div id="settings-modal" class="modal-overlay hidden">
         <div class="modal-content glass-panel">
-            <h3>Settings</h3>
+            <h3>User Settings</h3>
             
             <div class="input-wrapper">
                 <label>Display Name</label>
                 <input type="text" id="username-input" value="Student">
             </div>
 
-            <button class="action-btn danger" onclick="resetApp()">Sign Out & Reset Data</button>
+            <div class="slider-wrapper">
+                <div class="slider-header">
+                    <label>Default Age/Difficulty</label>
+                    <span id="level-badge" class="badge-pill">12 yrs • Creator</span>
+                </div>
+                <input type="range" id="age-slider" min="5" max="25" value="12">
+            </div>
+
+            <button class="action-btn danger" onclick="resetApp()">Sign Out & Reset All Data</button>
             <button class="action-btn secondary" onclick="toggleSettings()">Done</button>
         </div>
     </div>
+    
+    <div id="quiz-summary-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <h3>Quiz Complete! 🎉</h3>
+            <p>Your Score:</p>
+            <h1 id="summary-score" class="accent-text">0 / 0</h1>
+            
+            <div class="summary-results-container">
+                <h4>Review:</h4>
+                <div id="summary-results-list" class="review-list">
+                    </div>
+            </div>
+
+            <button class="action-btn" onclick="retakeQuiz()">
+                Retake Quiz
+            </button>
+            <button class="action-btn secondary" onclick="closeSummary()">
+                Exit to Hub
+            </button>
+        </div>
+    </div>
+    
+    <div id="toast-message" class="toast hidden"></div>
 
     <script src="app.js"></script>
 </body>
