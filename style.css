@@ -168,10 +168,30 @@ input[type="text"]:focus { border-color: var(--primary); outline: none; }
 .option-btn.correct { background: rgba(0, 216, 133, 0.2); border-color: var(--success); }
 .option-btn.wrong { background: rgba(255, 68, 85, 0.2); border-color: var(--error); }
 
+/* Image Styling for Quiz (NEW BLOCK) */
+.q-image-area {
+    width: 100%;
+    height: 180px; 
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+}
+
+.q-image-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
+}
+
+
 /* Utilities */
 .hidden { display: none !important; }
 .hidden-view { display: none; }
+.active-view { animation: fadeIn 0.4s; }
 .status-message { margin-top: 15px; text-align: center; color: var(--primary); font-weight: 700; font-size: 0.9rem; }
+.progress-track { background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #F42F8C, #6C5DD3); transition: width 0.3s ease-out; }
+
 
 /* Modal */
 .modal-overlay {

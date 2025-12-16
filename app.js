@@ -1,12 +1,12 @@
-// --- CONFIGURATION & STATE ---
+// --- CONFIGURATION ---
 const CONFIG = {
-    model: "Phi-3-mini-4k-instruct-q4f16_1-MLC",
-    pexelsKey: "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM" // Replace for images
+    model: "Phi-3-mini-4k-instruct-q4f16_1-MLC", 
+    pexelsKey: "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM" // <-- ADD YOUR KEY HERE
 };
 
 const State = {
-    engine: null,
-    pdfText: "",
+    engine: null, // Singleton instance
+    isEngineLoaded: false,
     questions: [],
     currentQIndex: 0,
     settings: {
@@ -16,150 +16,191 @@ const State = {
 };
 
 const UI = {
-    // Mapping IDs to easier variables
     btn: document.getElementById('generate-btn'),
     status: document.getElementById('system-status'),
+    loader: document.getElementById('ai-loader-bar'),
+    loadContainer: document.getElementById('ai-progress-container'),
     fileInput: document.getElementById('file-upload'),
     topicInput: document.getElementById('topic-input'),
     dropZone: document.getElementById('drop-zone')
 };
 
-// --- CORE: PDF PROCESSING (The Critical Fix) ---
-
+// --- CORE 1: PDF EXTRACTION ---
 async function extractTextFromPDF(file, onProgress) {
-    // SAFETY CHECK: Ensure callback is actually a function
-    const safeProgress = (msg) => {
-        if (typeof onProgress === 'function') {
-            onProgress(msg);
-        } else {
-            console.log("Progress:", msg); // Fallback to console
-        }
-    };
+    // FIX: Prevents "statusCallback is not a function" crash
+    const safeProgress = (msg) => typeof onProgress === 'function' ? onProgress(msg) : console.log(msg);
 
     try {
-        if (!window.pdfjsLib) throw new Error("PDF Library failed to load.");
+        if (!window.pdfjsLib) throw new Error("PDF Engine not ready.");
         
+        safeProgress("Scanning PDF Structure...");
         const buffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
         let fullText = "";
         
-        const limit = Math.min(pdf.numPages, 6); // Limit pages for speed
+        const limit = Math.min(pdf.numPages, 5);
         
         for (let i = 1; i <= limit; i++) {
-            safeProgress(`Reading page ${i}/${pdf.numPages}...`);
+            safeProgress(`Reading Page ${i} of ${limit}...`);
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
             const strings = content.items.map(item => item.str);
             fullText += strings.join(" ") + " ";
         }
         
-        if(fullText.length < 50) throw new Error("PDF seems empty or scanned image.");
         return fullText;
-
     } catch (e) {
-        console.error("PDF Error:", e);
-        throw e;
+        throw new Error("PDF Read Failed: " + e.message);
     }
 }
 
-// --- CORE: AI GENERATION ---
+// --- CORE 2: AI ENGINE (SINGLETON & OPTIMIZED) ---
+async function getAIEngine(onProgress) {
+    // FIX: Singleton pattern prevents slow repeated reloading
+    if (State.engine && State.isEngineLoaded) {
+        return State.engine;
+    }
+    if (!navigator.gpu) {
+        throw new Error("WebGPU not supported on this browser. Use Chrome/Edge on Desktop/Android.");
+    }
+    onProgress("Booting GPU Engine...", 10);
 
-async function initAI(onProgress) {
-    if (State.engine) return State.engine;
-    
-    if (!window.webllm) throw new Error("WebLLM module not found.");
-    
-    onProgress("Booting Neural Engine...");
-    
     const engine = new window.webllm.MLCEngine();
-    engine.setInitProgressCallback((report) => {
-        // Formats the messy output from WebLLM into a clean %
-        const percent = Math.round(report.progress * 100);
-        onProgress(`Loading Model: ${percent}%`);
-    });
     
+    // FIX: Custom progress handler to show linear progress
+    engine.setInitProgressCallback((report) => {
+        let percentage = report.progress * 100;
+        let text = report.text;
+
+        if (text.includes("Fetching")) text = "Downloading AI Model (Once only)...";
+        if (text.includes("Loading")) text = "Loading into GPU VRAM...";
+        
+        onProgress(text, percentage);
+    });
+
     await engine.reload(CONFIG.model);
+    
     State.engine = engine;
+    State.isEngineLoaded = true;
     return engine;
 }
 
 async function generateQuestions(topic, text, onProgress) {
-    const engine = await initAI(onProgress);
+    const engine = await getAIEngine(onProgress);
     
-    onProgress("Analysing Content...");
+    onProgress("AI is thinking...", 100);
 
-    // Prompt Engineering based on Age
     const age = State.settings.age;
-    const role = age < 12 ? "friendly teacher" : "university professor";
-    const complexity = age < 12 ? "simple, fun language" : "detailed, analytical";
-
+    
     const prompt = `
-    You are a ${role}. 
-    Context: ${text.substring(0, 3500)}
+    Context: ${text.substring(0, 3000)}
     Topic: ${topic}
-    Task: Create 5 multiple-choice questions suitable for a ${age}-year-old student. Use ${complexity}.
-    Format: STRICT JSON array. No markdown.
-    Structure: [{"q": "Question?", "opts": ["A", "B", "C", "D"], "a": "Correct Option String", "why": "Explanation"}]
+    Create 5 multiple-choice questions for a ${age}-year-old student.
+    Return ONLY a JSON Array.
+    Format: [{"q": "Question", "opts": ["A","B","C","D"], "a": "Correct Option String", "why": "Explanation"}]
     `;
 
-    onProgress("Dreaming up questions...");
-    
     const response = await engine.chat.completions.create({
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.5
+        temperature: 0.3,
     });
 
     const raw = response.choices[0].message.content;
-    
-    // JSON Cleaning (AI sometimes adds backticks)
-    const jsonStr = raw.replace(/```json|```/g, "").trim();
-    
+
+    // FIX: Robust JSON Parsing to find array brackets
     try {
+        const start = raw.indexOf('[');
+        const end = raw.lastIndexOf(']') + 1;
+        
+        if (start === -1 || end === 0) throw new Error("AI did not return an array.");
+        
+        const jsonStr = raw.substring(start, end);
         return JSON.parse(jsonStr);
     } catch (e) {
-        throw new Error("AI output was not valid JSON. Try again.");
+        console.error("JSON Parse Error", e);
+        throw new Error("Failed to parse AI response. Retrying...");
     }
 }
 
-// --- CONTROLLER: MAIN LOGIC ---
 
-async function handleGeneration() {
-    const file = UI.fileInput.files[0];
-    const topic = UI.topicInput.value;
-
-    if (!file || !topic) {
-        alert("Please select a file and enter a topic.");
-        return;
+// --- CORE 3: PEXELS IMAGE FETCH ---
+async function fetchImageForTopic(topic) {
+    if (!CONFIG.pexelsKey || CONFIG.pexelsKey === "YOUR_PEXELS_KEY_HERE") {
+        console.warn("Pexels API key not configured. Skipping image fetch.");
+        return null;
     }
 
-    // LOCK UI
+    try {
+        const query = encodeURIComponent(topic);
+        const url = `https://api.pexels.com/v1/search?query=${query}&per_page=1`;
+        
+        const response = await fetch(url, {
+            headers: {
+                Authorization: CONFIG.pexelsKey
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Pexels API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.photos && data.photos.length > 0) {
+            return data.photos[0].src.medium; 
+        }
+        return null;
+    } catch (e) {
+        console.error("Image Fetch Error:", e);
+        return null;
+    }
+}
+
+
+// --- CONTROLLER: MAIN LOGIC ---
+async function handleBuild() {
+    const file = UI.fileInput.files[0];
+    const topic = UI.topicInput.value.trim(); // FIX: Topic is trimmed and checked
+
+    if (!file) return alert("Please select a PDF file.");
+    if (!topic) return alert("Please enter a topic.");
+
     UI.btn.disabled = true;
     UI.status.classList.remove('hidden');
+    UI.loadContainer.classList.remove('hidden');
+
+    const updateStatus = (msg, percent = null) => {
+        UI.status.innerHTML = `<i class="fas fa-sync fa-spin"></i> ${msg}`;
+        if (percent !== null) UI.loader.style.width = `${percent}%`;
+    };
 
     try {
-        // 1. Extract Text (Passing Arrow Function specifically to avoid Scope Errors)
-        const text = await extractTextFromPDF(file, (msg) => {
-            UI.status.innerHTML = `<i class="fas fa-sync fa-spin"></i> ${msg}`;
-        });
+        // 1. PDF
+        const text = await extractTextFromPDF(file, (msg) => updateStatus(msg, 10));
+        
+        // 2. AI
+        State.questions = await generateQuestions(topic, text, updateStatus);
 
-        // 2. Generate Content
-        State.questions = await generateQuestions(topic, text, (msg) => {
-            UI.status.innerHTML = `<i class="fas fa-brain fa-pulse"></i> ${msg}`;
-        });
-
-        // 3. Success
+        // 3. PEXELS IMAGE FETCH
+        updateStatus("Finalizing... Fetching image for Quiz 1");
+        const imageUrl = await fetchImageForTopic(topic);
+        
+        if (State.questions.length > 0) {
+            State.questions[0].imageUrl = imageUrl; 
+        }
+        
+        // 4. Start
         startQuiz();
 
     } catch (err) {
-        UI.status.innerHTML = `<span style="color:var(--error)">Error: ${err.message}</span>`;
-        console.error(err);
+        UI.status.innerHTML = `<span style="color:var(--error)">${err.message}</span>`;
+        UI.loader.style.background = 'var(--error)';
     } finally {
         UI.btn.disabled = false;
     }
 }
 
-// --- QUIZ LOGIC ---
-
+// --- QUIZ FUNCTIONS ---
 function startQuiz() {
     document.getElementById('view-hub').classList.add('hidden');
     document.getElementById('view-quiz').classList.remove('hidden-view');
@@ -171,117 +212,107 @@ function renderQuestion() {
     const q = State.questions[State.currentQIndex];
     document.getElementById('question-tracker').innerText = `${State.currentQIndex + 1}/${State.questions.length}`;
     document.getElementById('quiz-progress-bar').style.width = `${((State.currentQIndex) / State.questions.length) * 100}%`;
-    
     document.getElementById('q-text').innerText = q.q;
     
-    const optsContainer = document.getElementById('options-container');
-    optsContainer.innerHTML = ''; // Clear
+    // IMAGE RENDERING LOGIC
+    const imgContainer = document.getElementById('q-image-container');
+    imgContainer.innerHTML = ''; 
+
+    if (q.imageUrl) {
+        imgContainer.classList.remove('hidden');
+        imgContainer.innerHTML = `<img src="${q.imageUrl}" alt="${q.q}" />`;
+    } else {
+        imgContainer.classList.add('hidden');
+    }
+    
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
 
     q.opts.forEach(opt => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
         btn.innerText = opt;
         btn.onclick = () => checkAnswer(btn, opt, q);
-        optsContainer.appendChild(btn);
+        container.appendChild(btn);
     });
 
-    // Reset Feedback
     document.getElementById('q-feedback').classList.add('hidden');
     document.getElementById('next-q-btn').classList.add('hidden');
 }
 
 function checkAnswer(btn, selected, qData) {
-    // Disable all
-    const all = document.querySelectorAll('.option-btn');
-    all.forEach(b => b.disabled = true);
+    const buttons = document.querySelectorAll('.option-btn');
+    buttons.forEach(b => b.disabled = true);
 
-    const isCorrect = selected === qData.a;
-    
-    if (isCorrect) {
+    if (selected === qData.a) {
         btn.classList.add('correct');
         showFeedback(true, "Correct! " + qData.why);
     } else {
         btn.classList.add('wrong');
-        // Highlight correct
-        all.forEach(b => {
-            if (b.innerText === qData.a) b.classList.add('correct');
-        });
+        buttons.forEach(b => { if(b.innerText === qData.a) b.classList.add('correct'); });
         showFeedback(false, "Oops! " + qData.why);
     }
-    
     document.getElementById('next-q-btn').classList.remove('hidden');
 }
 
-function showFeedback(isSuccess, text) {
+function showFeedback(isSuccess, msg) {
     const fb = document.getElementById('q-feedback');
-    fb.innerHTML = (isSuccess ? '🎉 ' : '❌ ') + text;
-    fb.style.color = isSuccess ? 'var(--success)' : 'var(--error)';
+    fb.innerHTML = (isSuccess ? '🎉 ' : '❌ ') + msg;
+    fb.style.color = isSuccess ? '#00D885' : '#FF4455';
     fb.classList.remove('hidden');
 }
 
-window.nextQuestion = function() {
+window.nextQuestion = () => {
     if (State.currentQIndex < State.questions.length - 1) {
         State.currentQIndex++;
         renderQuestion();
     } else {
-        alert("Quiz Complete! Returning to Hub.");
+        alert("Quiz Complete!");
         exitQuiz();
     }
 };
 
-window.exitQuiz = function() {
+window.exitQuiz = () => {
     document.getElementById('view-quiz').classList.add('hidden-view');
     document.getElementById('view-hub').classList.remove('hidden');
     UI.status.classList.add('hidden');
+    UI.loadContainer.classList.add('hidden');
+    UI.loader.style.width = '0%';
 };
 
-// --- EVENTS & INIT ---
-
+// --- INIT LISTENERS ---
 document.addEventListener('DOMContentLoaded', () => {
-    // File Input Logic
     UI.dropZone.onclick = () => UI.fileInput.click();
-    
     UI.fileInput.onchange = (e) => {
-        if (e.target.files[0]) {
+        if(e.target.files[0]) {
             document.getElementById('file-name').innerText = e.target.files[0].name;
-            UI.dropZone.classList.add('has-file');
+            UI.dropZone.style.borderColor = '#6C5DD3';
+            UI.dropZone.style.background = 'rgba(108, 93, 211, 0.1)';
         }
     };
 
-    // Slider Logic
     const slider = document.getElementById('age-slider');
-    const badge = document.getElementById('level-badge');
-    
-    const updateBadge = () => {
+    slider.oninput = () => {
         const val = slider.value;
-        let role = val < 10 ? 'Explorer' : (val < 16 ? 'Creator' : 'Innovator');
-        badge.innerText = `${val} yrs • ${role}`;
+        const role = val < 10 ? 'Explorer' : (val < 16 ? 'Creator' : 'Innovator');
+        document.getElementById('level-badge').innerText = `${val} yrs • ${role}`;
         State.settings.age = val;
-        localStorage.setItem("lumina_age", val);
     };
-    
-    slider.oninput = updateBadge;
-    updateBadge(); // Init
 
-    // Settings
     document.getElementById('username-input').value = State.settings.username;
+    document.getElementById('nav-username').innerText = State.settings.username; // Ensure initial name is displayed
     
-    UI.btn.onclick = handleGeneration;
+    UI.btn.onclick = handleBuild;
 });
 
-// Settings Modal
 window.toggleSettings = () => {
     const m = document.getElementById('settings-modal');
     m.classList.toggle('hidden');
-    // Save on close
-    if (m.classList.contains('hidden')) {
+    if(m.classList.contains('hidden')) {
         State.settings.username = document.getElementById('username-input').value;
         document.getElementById('nav-username').innerText = State.settings.username;
         localStorage.setItem("lumina_user", State.settings.username);
     }
 };
 
-window.resetApp = () => {
-    localStorage.clear();
-    location.reload();
-};
+window.resetApp = () => { localStorage.clear(); location.reload(); };

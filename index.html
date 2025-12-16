@@ -10,6 +10,7 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+    
     <script type="module">
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
         window.webllm = webllm;
@@ -42,7 +43,7 @@
 
                 <div class="input-wrapper">
                     <label>Topic</label>
-                    <input type="text" id="topic-input" placeholder="e.g. Photosynthesis" value="Defence GK">
+                    <input type="text" id="topic-input" placeholder="e.g. Quantum Physics">
                 </div>
 
                 <div class="slider-wrapper">
@@ -68,25 +69,13 @@
                     <span class="btn-content">
                         <i class="fas fa-sparkles"></i> Build Library
                     </span>
-                    <div class="btn-progress" id="btn-progress"></div>
                 </button>
 
-                <div id="system-status" class="status-message hidden">
-                    <i class="fas fa-circle-notch fa-spin"></i> Initializing AI...
+                <div id="ai-progress-container" class="progress-track hidden" style="margin-top:15px; height:6px;">
+                    <div class="progress-fill" id="ai-loader-bar" style="width: 0%"></div>
                 </div>
+                <div id="system-status" class="status-message hidden">Initializing...</div>
             </div>
-
-            <div class="modes-grid disabled" id="modes-container">
-                <div class="mode-card active">
-                    <i class="fas fa-bolt"></i>
-                    <span>Blitz Quiz</span>
-                </div>
-                <div class="mode-card">
-                    <i class="fas fa-layer-group"></i>
-                    <span>Flashcards</span>
-                </div>
-            </div>
-
         </main>
 
         <main id="view-quiz" class="hidden-view">
@@ -99,7 +88,8 @@
             </div>
 
             <div class="question-card glass-panel">
-                <div id="q-image-container" class="q-image hidden"></div>
+                <div id="q-image-container" class="q-image-area hidden"></div>
+                
                 <h2 id="q-text">Loading...</h2>
                 <div class="options-list" id="options-container">
                     </div>
@@ -117,20 +107,12 @@
         <div class="modal-content glass-panel">
             <h3>Settings</h3>
             
-            <div class="setting-row">
-                <span>Theme</span>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="theme-toggle" checked>
-                    <label for="theme-toggle"></label>
-                </div>
-            </div>
-            
             <div class="input-wrapper">
                 <label>Display Name</label>
                 <input type="text" id="username-input" value="Student">
             </div>
 
-            <button class="action-btn danger" onclick="resetApp()">Reset Everything</button>
+            <button class="action-btn danger" onclick="resetApp()">Reset App Data</button>
             <button class="action-btn secondary" onclick="toggleSettings()">Close</button>
         </div>
     </div>
