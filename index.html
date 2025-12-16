@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumina - Gamified Learning</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumina AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
@@ -16,113 +16,125 @@
     </script>
 </head>
 <body>
-    <div class="background-glow"></div>
-    <div class="container">
-        <header>
-            <div class="logo">Lumina<span class="dot">.</span></div>
-            <div class="user-profile">
-                <div class="avatar">🚀</div>
-                <div class="user-info">
-                    <span class="welcome-label">Welcome back,</span>
-                    <span class="user-name" id="display-name">Explorer</span>
-                </div>
+
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <div class="app-container">
+        
+        <nav class="glass-nav">
+            <div class="brand">
+                <i class="fas fa-bolt accent-text"></i> Lumina
             </div>
-            <button class="icon-btn settings-trigger" onclick="openSettingsModal()">
-                <i class="fas fa-cog"></i>
-            </button>
-        </header>
+            <div class="user-pill" onclick="toggleSettings()">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User">
+                <span id="nav-username">Student</span>
+            </div>
+        </nav>
 
-        <div id="hub-view" class="view active">
+        <main id="view-hub" class="active-view">
             
-            <div class="glass-card main-card">
-                <div class="card-header">
-                    <div class="step-badge">1</div>
-                    <h3>Define Your Source</h3>
-                </div>
-                
-                <div class="input-group">
-                    <label>Topic Name</label>
-                    <input type="text" id="topic-name" placeholder="e.g. Solar System" value="Defence GK">
+            <div class="hero-card glass-panel">
+                <div class="card-title">
+                    <span class="step-num">1</span>
+                    <h2>Create New Set</h2>
                 </div>
 
-                <div class="input-group">
+                <div class="input-wrapper">
+                    <label>Topic</label>
+                    <input type="text" id="topic-input" placeholder="e.g. Photosynthesis" value="Defence GK">
+                </div>
+
+                <div class="slider-wrapper">
                     <div class="slider-header">
-                        <label>Difficulty Level</label>
-                        <span id="age-val" class="highlight-text">12 yrs (Creator)</span>
+                        <label>Difficulty</label>
+                        <span id="level-badge" class="badge-pill">12 yrs • Creator</span>
                     </div>
-                    <input type="range" id="age-range" min="5" max="25" value="12" class="styled-slider">
+                    <input type="range" id="age-slider" min="5" max="25" value="12">
                 </div>
-                
-                <div class="upload-zone" id="upload-zone" onclick="document.getElementById('pdf-file').click()">
-                    <div class="upload-icon">
-                        <i class="fas fa-cloud-upload-alt"></i>
+
+                <div class="upload-area" id="drop-zone">
+                    <input type="file" id="file-upload" accept=".pdf" hidden>
+                    <div class="icon-circle">
+                        <i class="fas fa-file-pdf"></i>
                     </div>
-                    <div class="upload-text">
-                        <span id="file-status">Tap to Upload PDF</span>
-                        <small>Supported: .PDF (Text based)</small>
+                    <div class="upload-info">
+                        <strong id="file-name">Select PDF Source</strong>
+                        <span>Tap to browse files</span>
                     </div>
-                    <input type="file" id="pdf-file" accept=".pdf" style="display:none;">
                 </div>
-                
-                <div class="status-bar">
-                    <span id="ai-status"><i class="fas fa-sparkles"></i> Ready to Create</span>
-                </div>
-                
-                <button class="cta-btn primary" id="build-library-btn">
-                    <i class="fas fa-magic"></i> Build My Library
+
+                <button class="action-btn" id="generate-btn">
+                    <span class="btn-content">
+                        <i class="fas fa-sparkles"></i> Build Library
+                    </span>
+                    <div class="btn-progress" id="btn-progress"></div>
                 </button>
-            </div>
 
-            <div class="glass-card">
-                <div class="card-header">
-                    <div class="step-badge">2</div>
-                    <h3>Choose Mode</h3>
-                </div>
-                
-                <div class="mode-grid" id="action-tiles">
-                    <div class="mode-card" onclick="startQuiz()">
-                        <div class="icon-box gradient-1"><i class="fas fa-bolt"></i></div>
-                        <span>Blitz Quiz</span>
-                    </div>
-                    <div class="mode-card disabled">
-                        <div class="icon-box gradient-2"><i class="fas fa-layer-group"></i></div>
-                        <span>Flashcards</span>
-                    </div>
-                    <div class="mode-card disabled">
-                        <div class="icon-box gradient-3"><i class="fas fa-file-alt"></i></div>
-                        <span>Worksheet</span>
-                    </div>
+                <div id="system-status" class="status-message hidden">
+                    <i class="fas fa-circle-notch fa-spin"></i> Initializing AI...
                 </div>
             </div>
-        </div>
 
-        <div id="quiz-view" class="view">
+            <div class="modes-grid disabled" id="modes-container">
+                <div class="mode-card active">
+                    <i class="fas fa-bolt"></i>
+                    <span>Blitz Quiz</span>
+                </div>
+                <div class="mode-card">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Flashcards</span>
+                </div>
+            </div>
+
+        </main>
+
+        <main id="view-quiz" class="hidden-view">
             <div class="quiz-header">
-                <button class="icon-btn" onclick="openExitConfirmation()"><i class="fas fa-arrow-left"></i></button>
-                <div class="progress-container">
-                    <div class="progress-bar" id="quiz-progress" style="width: 0%"></div>
+                <button class="icon-btn" onclick="exitQuiz()"><i class="fas fa-times"></i></button>
+                <div class="progress-track">
+                    <div class="progress-fill" id="quiz-progress-bar" style="width: 0%"></div>
                 </div>
-                <span id="q-counter">1/5</span>
+                <span id="question-tracker">1/5</span>
+            </div>
+
+            <div class="question-card glass-panel">
+                <div id="q-image-container" class="q-image hidden"></div>
+                <h2 id="q-text">Loading...</h2>
+                <div class="options-list" id="options-container">
+                    </div>
+                <div id="q-feedback" class="feedback-box hidden"></div>
+            </div>
+
+            <button id="next-q-btn" class="action-btn secondary hidden" onclick="nextQuestion()">
+                Continue <i class="fas fa-arrow-right"></i>
+            </button>
+        </main>
+
+    </div>
+
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <h3>Settings</h3>
+            
+            <div class="setting-row">
+                <span>Theme</span>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="theme-toggle" checked>
+                    <label for="theme-toggle"></label>
+                </div>
             </div>
             
-            <div id="quiz-content" class="quiz-container">
-                </div>
-            
-            <div class="quiz-controls">
-                <button class="cta-btn secondary" onclick="openExitConfirmation()">Exit</button>
-                <button class="cta-btn primary" id="next-btn" onclick="handleNext()" disabled>Next <i class="fas fa-arrow-right"></i></button>
+            <div class="input-wrapper">
+                <label>Display Name</label>
+                <input type="text" id="username-input" value="Student">
             </div>
+
+            <button class="action-btn danger" onclick="resetApp()">Reset Everything</button>
+            <button class="action-btn secondary" onclick="toggleSettings()">Close</button>
         </div>
     </div>
 
-    <div id="modal-overlay" class="modal-overlay hidden">
-        <div class="modal-glass">
-            <h2 id="modal-title">Settings</h2>
-            <div id="modal-body"></div>
-            <button class="close-icon" onclick="closeModal()"><i class="fas fa-times"></i></button>
-        </div>
-    </div>
-    
     <script src="app.js"></script>
 </body>
 </html>

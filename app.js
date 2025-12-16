@@ -1,293 +1,287 @@
-// --- CONFIGURATION ---
-const SELECTED_MODEL = "Phi-3-mini-4k-instruct-q4f16_1-MLC";
-const PEXELS_API_KEY = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
+// --- CONFIGURATION & STATE ---
+const CONFIG = {
+    model: "Phi-3-mini-4k-instruct-q4f16_1-MLC",
+    pexelsKey: "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM" // Replace for images
+};
 
-// State Management
 const State = {
-    db: [],
-    sessionSet: [],
-    currentIndex: 0,
-    extractedText: "",
     engine: null,
+    pdfText: "",
+    questions: [],
+    currentQIndex: 0,
     settings: {
-        userName: localStorage.getItem('userName') || "Explorer",
-        age: localStorage.getItem('ageRange') || 12
+        username: localStorage.getItem("lumina_user") || "Student",
+        age: parseInt(localStorage.getItem("lumina_age")) || 12
     }
 };
 
-const KNOWLEDGE_ZONES = {
-    Explorer: { max: 10, prompt: "You are a teacher for kids (5-10). Simple words." },
-    Creator: { max: 15, prompt: "You are a tutor for teens. Focus on concepts." },
-    Innovator: { max: 25, prompt: "You are a professor. High level analysis." }
+const UI = {
+    // Mapping IDs to easier variables
+    btn: document.getElementById('generate-btn'),
+    status: document.getElementById('system-status'),
+    fileInput: document.getElementById('file-upload'),
+    topicInput: document.getElementById('topic-input'),
+    dropZone: document.getElementById('drop-zone')
 };
 
-// --- CORE FUNCTIONS ---
+// --- CORE: PDF PROCESSING (The Critical Fix) ---
 
-function getZone(age) {
-    if (age <= 10) return 'Explorer';
-    if (age <= 15) return 'Creator';
-    return 'Innovator';
-}
-
-function updateUI() {
-    document.getElementById('display-name').innerText = State.settings.userName;
-    const zone = getZone(State.settings.age);
-    document.getElementById('age-val').innerText = `${State.settings.age} yrs (${zone})`;
-    document.getElementById('age-range').value = State.settings.age;
-}
-
-// 1. PDF EXTRACTION (FIXED: Callback handling)
-async function extractTextFromPDF(file, statusCallback) {
-    try {
-        if (!window.pdfjsLib) throw new Error("PDF Lib missing");
-        
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let fullText = "";
-        const maxPages = Math.min(pdf.numPages, 5); // Limit for speed
-
-        for (let i = 1; i <= maxPages; i++) {
-            // SAFE CALL: Check if callback exists and is a function
-            if (typeof statusCallback === 'function') {
-                statusCallback(`📄 Scanning Page ${i}/${maxPages}...`);
-            }
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            fullText += textContent.items.map(item => item.str).join(" ") + " ";
+async function extractTextFromPDF(file, onProgress) {
+    // SAFETY CHECK: Ensure callback is actually a function
+    const safeProgress = (msg) => {
+        if (typeof onProgress === 'function') {
+            onProgress(msg);
+        } else {
+            console.log("Progress:", msg); // Fallback to console
         }
+    };
+
+    try {
+        if (!window.pdfjsLib) throw new Error("PDF Library failed to load.");
+        
+        const buffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+        let fullText = "";
+        
+        const limit = Math.min(pdf.numPages, 6); // Limit pages for speed
+        
+        for (let i = 1; i <= limit; i++) {
+            safeProgress(`Reading page ${i}/${pdf.numPages}...`);
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const strings = content.items.map(item => item.str);
+            fullText += strings.join(" ") + " ";
+        }
+        
+        if(fullText.length < 50) throw new Error("PDF seems empty or scanned image.");
         return fullText;
+
     } catch (e) {
-        console.error(e);
-        throw new Error("Cannot read PDF. Is it text-based?");
+        console.error("PDF Error:", e);
+        throw e;
     }
 }
 
-// 2. AI ENGINE & GENERATION
-async function initializeEngine(statusCallback) {
-    if (State.engine) return State.engine;
-    if (!window.webllm) throw new Error("WebLLM missing");
+// --- CORE: AI GENERATION ---
 
-    statusCallback("🧠 Waking up AI (One-time load)...");
+async function initAI(onProgress) {
+    if (State.engine) return State.engine;
+    
+    if (!window.webllm) throw new Error("WebLLM module not found.");
+    
+    onProgress("Booting Neural Engine...");
+    
     const engine = new window.webllm.MLCEngine();
     engine.setInitProgressCallback((report) => {
-        statusCallback(`📥 Loading AI Model: ${Math.ceil(report.progress * 100)}%`);
+        // Formats the messy output from WebLLM into a clean %
+        const percent = Math.round(report.progress * 100);
+        onProgress(`Loading Model: ${percent}%`);
     });
-    await engine.reload(SELECTED_MODEL);
+    
+    await engine.reload(CONFIG.model);
     State.engine = engine;
     return engine;
 }
 
-async function generateQuestions(topic, context, aiStatusCallback) {
-    const engine = await initializeEngine(aiStatusCallback);
+async function generateQuestions(topic, text, onProgress) {
+    const engine = await initAI(onProgress);
     
-    // Pexels Fetch (Silent)
-    let imageUrl = null;
-    if (PEXELS_API_KEY !== "YOUR_PEXELS_API_KEY_HERE") {
-        try {
-            const pexRes = await fetch(`https://api.pexels.com/v1/search?query=${topic}&per_page=1`, {
-                headers: { Authorization: PEXELS_API_KEY }
-            });
-            const pexData = await pexRes.json();
-            if (pexData.photos && pexData.photos.length > 0) imageUrl = pexData.photos[0].src.medium;
-        } catch (e) { console.log("Image fetch failed"); }
-    }
+    onProgress("Analysing Content...");
 
-    const zone = getZone(State.settings.age);
-    const systemPrompt = `
-        ${KNOWLEDGE_ZONES[zone].prompt}
-        Context: ${context.substring(0, 3000)}
-        Task: Generate 5 multiple choice questions in strictly valid JSON format.
-        Format: [{"question":"...","options":["A","B","C","D"],"correct":"A","explanation":"..."}]
+    // Prompt Engineering based on Age
+    const age = State.settings.age;
+    const role = age < 12 ? "friendly teacher" : "university professor";
+    const complexity = age < 12 ? "simple, fun language" : "detailed, analytical";
+
+    const prompt = `
+    You are a ${role}. 
+    Context: ${text.substring(0, 3500)}
+    Topic: ${topic}
+    Task: Create 5 multiple-choice questions suitable for a ${age}-year-old student. Use ${complexity}.
+    Format: STRICT JSON array. No markdown.
+    Structure: [{"q": "Question?", "opts": ["A", "B", "C", "D"], "a": "Correct Option String", "why": "Explanation"}]
     `;
 
-    aiStatusCallback("✨ Dreaming up questions...");
+    onProgress("Dreaming up questions...");
     
     const response = await engine.chat.completions.create({
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `Topic: ${topic}. Go.` }],
-        temperature: 0.6,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.5
     });
 
     const raw = response.choices[0].message.content;
-    const jsonMatch = raw.match(/\[.*\]/s);
-    if (!jsonMatch) throw new Error("AI output invalid.");
     
-    const questions = JSON.parse(jsonMatch[0]);
+    // JSON Cleaning (AI sometimes adds backticks)
+    const jsonStr = raw.replace(/```json|```/g, "").trim();
     
-    // Attach image to first question
-    if (imageUrl && questions.length > 0) questions[0].imageUrl = imageUrl;
-    
-    return questions;
+    try {
+        return JSON.parse(jsonStr);
+    } catch (e) {
+        throw new Error("AI output was not valid JSON. Try again.");
+    }
 }
 
-// --- CONTROLLERS ---
+// --- CONTROLLER: MAIN LOGIC ---
 
-async function handleBuildLibrary() {
-    const topic = document.getElementById('topic-name').value;
-    const fileInput = document.getElementById('pdf-file');
-    const statusEl = document.getElementById('ai-status');
-    const btn = document.getElementById('build-library-btn');
-    
-    if (!topic || !fileInput.files[0]) {
-        alert("Please enter a topic and select a PDF.");
+async function handleGeneration() {
+    const file = UI.fileInput.files[0];
+    const topic = UI.topicInput.value;
+
+    if (!file || !topic) {
+        alert("Please select a file and enter a topic.");
         return;
     }
 
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    // LOCK UI
+    UI.btn.disabled = true;
+    UI.status.classList.remove('hidden');
 
     try {
-        // STEP 1: READ PDF
-        // CRITICAL FIX: Passing an ARROW FUNCTION, not a string assignment
-        const text = await extractTextFromPDF(fileInput.files[0], (msg) => {
-            statusEl.innerHTML = `<i class="fas fa-sync fa-spin"></i> ${msg}`;
+        // 1. Extract Text (Passing Arrow Function specifically to avoid Scope Errors)
+        const text = await extractTextFromPDF(file, (msg) => {
+            UI.status.innerHTML = `<i class="fas fa-sync fa-spin"></i> ${msg}`;
         });
 
-        // STEP 2: GENERATE
-        State.db = await generateQuestions(topic, text, (msg) => {
-            statusEl.innerHTML = `<i class="fas fa-magic fa-spin"></i> ${msg}`;
+        // 2. Generate Content
+        State.questions = await generateQuestions(topic, text, (msg) => {
+            UI.status.innerHTML = `<i class="fas fa-brain fa-pulse"></i> ${msg}`;
         });
 
-        // SUCCESS
-        statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Library Ready (${State.db.length} Qs)`;
-        document.querySelectorAll('.mode-card').forEach(c => c.classList.add('active'));
+        // 3. Success
+        startQuiz();
 
-    } catch (e) {
-        statusEl.innerHTML = `<span style="color:var(--error)"><i class="fas fa-exclamation-triangle"></i> ${e.message}</span>`;
-        console.error(e);
+    } catch (err) {
+        UI.status.innerHTML = `<span style="color:var(--error)">Error: ${err.message}</span>`;
+        console.error(err);
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-magic"></i> Build My Library';
+        UI.btn.disabled = false;
     }
 }
 
+// --- QUIZ LOGIC ---
+
 function startQuiz() {
-    if (!State.db.length) return;
-    State.sessionSet = [...State.db];
-    State.currentIndex = 0;
-    
-    switchView('quiz-view');
+    document.getElementById('view-hub').classList.add('hidden');
+    document.getElementById('view-quiz').classList.remove('hidden-view');
+    State.currentQIndex = 0;
     renderQuestion();
 }
 
 function renderQuestion() {
-    const q = State.sessionSet[State.currentIndex];
-    const total = State.sessionSet.length;
+    const q = State.questions[State.currentQIndex];
+    document.getElementById('question-tracker').innerText = `${State.currentQIndex + 1}/${State.questions.length}`;
+    document.getElementById('quiz-progress-bar').style.width = `${((State.currentQIndex) / State.questions.length) * 100}%`;
     
-    document.getElementById('q-counter').innerText = `${State.currentIndex + 1}/${total}`;
-    document.getElementById('quiz-progress').style.width = `${((State.currentIndex) / total) * 100}%`;
+    document.getElementById('q-text').innerText = q.q;
     
-    let html = `
-        <div class="glass-card">
-            ${q.imageUrl ? `<img src="${q.imageUrl}" />` : ''}
-            <h3 style="font-size: 1.2rem; margin-bottom: 20px;">${q.question}</h3>
-            <div class="options-grid">
-                ${q.options.map(opt => `
-                    <button class="opt-btn" onclick="checkAnswer(this, '${opt.replace(/'/g, "\\'")}', '${q.correct.replace(/'/g, "\\'")}')">
-                        ${opt}
-                    </button>
-                `).join('')}
-            </div>
-            <div id="explanation" class="hidden" style="margin-top:15px; padding:10px; background:rgba(255,255,255,0.1); border-radius:8px;">
-                <small>💡 ${q.explanation}</small>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('quiz-content').innerHTML = html;
-    document.getElementById('next-btn').disabled = true;
+    const optsContainer = document.getElementById('options-container');
+    optsContainer.innerHTML = ''; // Clear
+
+    q.opts.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => checkAnswer(btn, opt, q);
+        optsContainer.appendChild(btn);
+    });
+
+    // Reset Feedback
+    document.getElementById('q-feedback').classList.add('hidden');
+    document.getElementById('next-q-btn').classList.add('hidden');
 }
 
-window.checkAnswer = function(btn, selected, correct) {
-    const parent = btn.parentElement;
-    const allBtns = parent.querySelectorAll('.opt-btn');
+function checkAnswer(btn, selected, qData) {
+    // Disable all
+    const all = document.querySelectorAll('.option-btn');
+    all.forEach(b => b.disabled = true);
+
+    const isCorrect = selected === qData.a;
     
-    allBtns.forEach(b => b.disabled = true); // Lock all
-    
-    if (selected === correct) {
+    if (isCorrect) {
         btn.classList.add('correct');
-        // Play sound effect could go here
+        showFeedback(true, "Correct! " + qData.why);
     } else {
         btn.classList.add('wrong');
-        // Highlight correct one
-        allBtns.forEach(b => {
-            if (b.innerText.includes(correct)) b.classList.add('correct');
+        // Highlight correct
+        all.forEach(b => {
+            if (b.innerText === qData.a) b.classList.add('correct');
         });
+        showFeedback(false, "Oops! " + qData.why);
     }
     
-    document.getElementById('explanation').classList.remove('hidden');
-    document.getElementById('next-btn').disabled = false;
+    document.getElementById('next-q-btn').classList.remove('hidden');
 }
 
-function handleNext() {
-    if (State.currentIndex < State.sessionSet.length - 1) {
-        State.currentIndex++;
+function showFeedback(isSuccess, text) {
+    const fb = document.getElementById('q-feedback');
+    fb.innerHTML = (isSuccess ? '🎉 ' : '❌ ') + text;
+    fb.style.color = isSuccess ? 'var(--success)' : 'var(--error)';
+    fb.classList.remove('hidden');
+}
+
+window.nextQuestion = function() {
+    if (State.currentQIndex < State.questions.length - 1) {
+        State.currentQIndex++;
         renderQuestion();
     } else {
-        openModal("🎉 Quiz Complete!", `<p>You finished the set!</p><button class="cta-btn primary" onclick="closeModal(); switchView('hub-view')">Back to Hub</button>`);
+        alert("Quiz Complete! Returning to Hub.");
+        exitQuiz();
     }
-}
+};
 
-// --- EVENT LISTENERS & INIT ---
+window.exitQuiz = function() {
+    document.getElementById('view-quiz').classList.add('hidden-view');
+    document.getElementById('view-hub').classList.remove('hidden');
+    UI.status.classList.add('hidden');
+};
+
+// --- EVENTS & INIT ---
 
 document.addEventListener('DOMContentLoaded', () => {
-    updateUI();
+    // File Input Logic
+    UI.dropZone.onclick = () => UI.fileInput.click();
     
-    // Fix: File Input Persistence
-    const fileInput = document.getElementById('pdf-file');
-    const label = document.getElementById('file-status');
-    const zone = document.getElementById('upload-zone');
-    
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            label.innerText = e.target.files[0].name; // Set name
-            zone.style.borderColor = '#00b09b';
-            zone.style.background = 'rgba(0, 176, 155, 0.1)';
+    UI.fileInput.onchange = (e) => {
+        if (e.target.files[0]) {
+            document.getElementById('file-name').innerText = e.target.files[0].name;
+            UI.dropZone.classList.add('has-file');
         }
-    });
+    };
 
     // Slider Logic
-    document.getElementById('age-range').addEventListener('input', (e) => {
-        State.settings.age = e.target.value;
-        localStorage.setItem('ageRange', e.target.value);
-        updateUI();
-    });
+    const slider = document.getElementById('age-slider');
+    const badge = document.getElementById('level-badge');
+    
+    const updateBadge = () => {
+        const val = slider.value;
+        let role = val < 10 ? 'Explorer' : (val < 16 ? 'Creator' : 'Innovator');
+        badge.innerText = `${val} yrs • ${role}`;
+        State.settings.age = val;
+        localStorage.setItem("lumina_age", val);
+    };
+    
+    slider.oninput = updateBadge;
+    updateBadge(); // Init
 
-    document.getElementById('build-library-btn').onclick = handleBuildLibrary;
+    // Settings
+    document.getElementById('username-input').value = State.settings.username;
+    
+    UI.btn.onclick = handleGeneration;
 });
 
-// Navigation
-function switchView(id) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-}
+// Settings Modal
+window.toggleSettings = () => {
+    const m = document.getElementById('settings-modal');
+    m.classList.toggle('hidden');
+    // Save on close
+    if (m.classList.contains('hidden')) {
+        State.settings.username = document.getElementById('username-input').value;
+        document.getElementById('nav-username').innerText = State.settings.username;
+        localStorage.setItem("lumina_user", State.settings.username);
+    }
+};
 
-// Modal Logic
-window.openSettingsModal = function() {
-    openModal("Settings", `
-        <div class="input-group">
-            <label>User Name</label>
-            <input type="text" value="${State.settings.userName}" onchange="State.settings.userName=this.value; localStorage.setItem('userName', this.value); updateUI()">
-        </div>
-        <button class="cta-btn secondary" onclick="localStorage.clear(); location.reload();" style="border-color:var(--error); color:var(--error)">Reset App Data</button>
-    `);
-}
-
-window.openExitConfirmation = function() {
-    openModal("Exit Quiz?", `
-        <p>Progress will be lost.</p>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-            <button class="cta-btn secondary" onclick="closeModal()">Cancel</button>
-            <button class="cta-btn primary" onclick="closeModal(); switchView('hub-view')">Exit</button>
-        </div>
-    `);
-}
-
-function openModal(title, content) {
-    document.getElementById('modal-title').innerText = title;
-    document.getElementById('modal-body').innerHTML = content;
-    document.getElementById('modal-overlay').classList.remove('hidden');
-}
-
-window.closeModal = function() {
-    document.getElementById('modal-overlay').classList.add('hidden');
-}
+window.resetApp = () => {
+    localStorage.clear();
+    location.reload();
+};
