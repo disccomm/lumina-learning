@@ -1,6 +1,7 @@
 // --- CONFIGURATION & STATE (V26.0 - Fixes Applied) ---
 const PEXELS_API_KEY_DEFAULT = "qQZw9X3j2A76TuOYYHDo2ssebWP5H7K056k1rpdOTVvqh7SVDQr4YyWM"; 
-
+// --- CONFIGURATION & STATE (V26.0 - Fixes Applied) ---
+const PEXELS_API_KEY_DEFAULT = "ADD_YOUR_KEY_HERE"; 
 let PEXELS_API_KEY = localStorage.getItem('pexelsKey') || PEXELS_API_KEY_DEFAULT; 
 
 // AI Model: 'Phi-3' is safer for mobile/web.
