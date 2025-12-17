@@ -3,114 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumina Study Engine - Enterprise v6.6 (Timer & Pause)</title>
+    <title>Lumina Study Engine - Enterprise v6.7 (Critical UI/UX Fix)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
-    <script>pdfjsLib = window['pdfjs-dist/build/pdf'];</script>
+    <script>
+        // CRITICAL FIX: Explicitly set worker source to fix "GlobalWorkerOptions.workerSrc" error on some platforms
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs`;
+            window.pdfjsLib = pdfjsLib;
+        } else {
+             // Fallback for non-module environments
+            const script = document.createElement('script');
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs";
+            document.head.appendChild(script);
+            window.pdfjsLib = window['pdfjs-dist/build/pdf'];
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs`;
+        }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
-        /* --- 🎨 Memrizz Inspired Core Styles (High Contrast, Clean, Card-Focused) --- */
+        /* --- 🎨 V6.7 Mobile-First/Glassmorphism Core Styles --- */
         :root {
-            --primary: #5856D6; /* Deep Purple/Violet - Primary App Store Color */
+            --primary: #5856D6; /* Deep Purple/Violet - iOS Accent */
             --primary-light: #7B79FF;
             --secondary: #34C759; /* Green for Success/Action */
             --error: #FF3B30;
-            --bg-dark: #1C1C1E; /* Deep Dark Mode Background */
-            --bg-medium: #2C2C2E; /* Card/Panel Background */
-            --bg-light: #3A3A3C; /* Input/Accent Background */
+            --bg-dark: #121215; /* Deeper Dark Mode Background */
+            --bg-medium: rgba(30, 30, 35, 0.8); /* Card/Panel for Glassmorphism */
+            --bg-light: #48484A; /* Input/Accent Background */
             --text-main: #FFFFFF;
-            --text-sub: #EBEBF599; /* Light Grey Subtext */
-            --radius-xl: 14px; /* Large rounded corners for cards */
-            --radius-md: 8px;
-            --shadow-elevation: 0 4px 12px rgba(0, 0, 0, 0.5);
+            --text-sub: #EBEBF599; 
+            --radius-xl: 20px; /* Large rounded corners for touch */
+            --radius-md: 10px;
+            --shadow-elevation: 0 8px 30px rgba(0, 0, 0, 0.6);
             --header-height: 60px;
         }
 
+        /* ------------------ GLASSMORPHISM BASE ------------------ */
+        .glass-card {
+            background-color: var(--bg-medium);
+            border-radius: var(--radius-xl);
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow-elevation);
+            border: 1px solid rgba(255, 255, 255, 0.05); /* Subtle white border */
+            backdrop-filter: blur(8px); /* The key Glassmorphism effect */
+            -webkit-backdrop-filter: blur(8px);
+        }
+        
         * {
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            transition: all 0.2s ease-out;
+            transition: all 0.3s ease-in-out;
         }
 
         body {
             background-color: var(--bg-dark);
             color: var(--text-main);
             margin: 0;
-            padding: 0;
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Align top for better mobile view */
+            align-items: flex-start;
+            background-image: radial-gradient(circle at 10% 20%, #201a35 0%, #121215 90%);
         }
         
         .app-container {
             width: 100%;
-            max-width: 900px;
-            padding: calc(var(--header-height) + 20px) 20px 20px;
-            margin: auto;
+            max-width: 768px; /* Optimized for tablet/mobile */
+            padding: calc(var(--header-height) + 15px) 15px 15px;
         }
         .hidden { display: none !important; }
         .hidden-view { display: none !important; }
 
-        /* --- Navigation & Headers --- */
+        /* --- Navigation & Headers (Fixed for Mobile) --- */
         .app-header {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             height: var(--header-height);
-            padding: 0 20px;
+            padding: 0 15px;
             z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background-color: var(--bg-dark);
-            border-bottom: 1px solid var(--bg-medium);
+            background-color: rgba(18, 18, 21, 0.9); /* Semi-transparent fixed header */
+            backdrop-filter: blur(5px);
         }
         .brand { font-size: 1.6rem; font-weight: 700; color: var(--primary-light); }
         .user-pill {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 5px 12px;
-            background: var(--bg-medium);
+            padding: 8px 14px; /* Larger touch target */
+            background: var(--bg-light);
             border-radius: 50px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
-        .user-pill img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+        .user-pill:active { transform: scale(0.98); }
         
-        /* --- Card and Input Styling --- */
-        .card {
-            background-color: var(--bg-medium);
-            border-radius: var(--radius-xl);
-            padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: var(--shadow-elevation);
-        }
+        /* --- Card and Input Styling (Glass Card applied) --- */
         .card-title {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
         }
         .step-num {
             background: var(--primary);
             color: var(--text-main);
-            width: 24px;
-            height: 24px;
+            width: 32px; /* Larger for touch */
+            height: 32px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 0.9rem;
+            font-size: 1.1rem;
             font-weight: 700;
         }
         
         label {
             display: block;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: var(--text-sub);
             margin-bottom: 5px;
             margin-top: 15px;
@@ -118,57 +136,59 @@
         
         input[type="text"], select {
             width: 100%;
-            padding: 12px;
+            padding: 15px; /* Larger padding for touch */
             background-color: var(--bg-light);
             color: var(--text-main);
-            border: 1px solid var(--bg-light);
+            border: none;
             border-radius: var(--radius-md);
-            font-size: 1rem;
-            box-shadow: none;
+            font-size: 1.1rem;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
             -webkit-appearance: none;
         }
 
         .upload-area {
             display: flex;
+            flex-direction: column; /* Stack vertically for mobile */
             align-items: center;
             gap: 15px;
-            padding: 15px;
+            padding: 30px; /* Large touch target */
             border: 2px dashed var(--primary);
             border-radius: var(--radius-md);
             cursor: pointer;
-            background-color: rgba(88, 86, 214, 0.1);
+            background-color: rgba(88, 86, 214, 0.15);
         }
-        .upload-area:hover { background-color: rgba(88, 86, 214, 0.2); }
-        .upload-info strong { display: block; font-size: 1rem; }
-        .upload-info span { font-size: 0.8rem; color: var(--text-sub); }
+        .upload-area:hover { background-color: rgba(88, 86, 214, 0.3); }
+        .upload-info strong { display: block; font-size: 1.1rem; }
+        .upload-info span { font-size: 0.85rem; color: var(--text-sub); }
         .icon-circle { 
-            width: 40px; height: 40px; border-radius: 50%; 
+            width: 50px; height: 50px; border-radius: 50%; 
             background: var(--primary); display: flex; align-items: center; 
-            justify-content: center; font-size: 1.2rem;
+            justify-content: center; font-size: 1.8rem;
         }
 
-        /* --- Buttons --- */
+        /* --- Buttons (Crucial for touch interface) --- */
         .action-btn {
             width: 100%;
-            padding: 15px;
+            padding: 18px; /* Increased height for touch */
             border: none;
             border-radius: var(--radius-md);
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 1.1rem;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 15px;
             color: var(--text-main);
             background: var(--primary);
-            box-shadow: 0 4px 8px rgba(88, 86, 214, 0.4);
+            box-shadow: 0 4px 15px rgba(88, 86, 214, 0.5);
         }
+        .action-btn:active { transform: scale(0.98); background: var(--primary-light); }
         .action-btn.secondary {
             background: var(--bg-light);
             color: var(--primary-light);
             box-shadow: none;
             border: 1px solid var(--primary);
         }
-        .action-btn.danger { background: var(--error); box-shadow: 0 4px 8px rgba(255, 59, 48, 0.4); }
-        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .action-btn.danger { background: var(--error); box-shadow: 0 4px 15px rgba(255, 59, 48, 0.5); }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
         .clear-btn {
             background: none;
             border: none;
@@ -176,28 +196,15 @@
             font-size: 0.9rem;
             margin-top: 10px;
             cursor: pointer;
-            text-align: right;
+            text-align: center; /* Center clear button for better mobile usability */
             width: 100%;
             padding: 5px 0;
         }
 
-        /* --- Loading & Status --- */
-        .loading-area { 
-            text-align: center; 
-            margin-top: 20px;
-            padding: 15px;
-            background: var(--bg-dark);
-            border-radius: var(--radius-md);
-        }
-        .status-message {
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: var(--text-sub);
-        }
-
-        /* --- Quiz Specifics (Memrizz Look) --- */
+        /* --- Quiz Specifics (Touch Optimized) --- */
         .quiz-header {
             display: flex;
+            flex-wrap: wrap; 
             align-items: center;
             gap: 15px;
             margin-bottom: 25px;
@@ -205,167 +212,106 @@
             padding-bottom: 15px;
             position: relative;
         }
-
         .timer-display {
-            position: absolute;
-            top: -5px;
-            right: 0;
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: 1.2rem;
+            font-weight: 700;
             color: var(--secondary);
-            background: var(--bg-dark);
-            padding: 3px 8px;
-            border-radius: var(--radius-md);
         }
-
         .icon-btn {
             background: none;
             border: none;
             color: var(--text-sub);
-            font-size: 1.2rem;
+            font-size: 1.5rem; /* Larger icon for touch */
             cursor: pointer;
-            padding: 0;
+            padding: 10px; /* Increased hit area */
         }
-        .icon-btn:hover { color: var(--text-main); }
-        
         .progress-track {
             flex-grow: 1;
-            height: 8px;
+            height: 10px;
             background: var(--bg-light);
-            border-radius: 4px;
+            border-radius: 5px;
             overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--primary);
+            flex-basis: 100%; /* Full width on mobile */
+            order: 4; /* Push to the next line */
+            margin-top: 10px;
         }
         .options-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 15px; /* More space between options */
         }
         .option-btn {
-            background: var(--bg-light);
+            background: var(--bg-medium); /* Use Glass card style */
             color: var(--text-main);
-            padding: 18px;
-            border: none;
-            border-radius: var(--radius-md);
+            padding: 20px; /* Significant padding for touch */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-xl);
             text-align: left;
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 500;
             cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
-        .option-btn:hover:not([disabled]) { background: var(--bg-medium); }
-        .option-btn.correct { background: var(--secondary); color: var(--bg-dark); font-weight: 700; }
-        .option-btn.wrong { background: var(--error); color: var(--text-main); opacity: 0.7; }
-
+        .option-btn:active:not([disabled]) { background: var(--primary); }
+        .option-btn.correct { background: var(--secondary); color: var(--bg-dark); font-weight: 700; border-color: var(--secondary); }
+        .option-btn.wrong { background: var(--error); color: var(--text-main); border-color: var(--error); opacity: 1; }
+        
+        /* Quiz Question & Image */
+        #q-text { font-size: 1.4rem; line-height: 1.4; font-weight: 700; }
         #quiz-image {
             max-width: 100%;
-            height: auto;
-            max-height: 200px; 
-            object-fit: contain;
+            max-height: 250px; 
+            object-fit: cover;
             border-radius: var(--radius-md);
             margin-bottom: 20px;
-            border: 2px solid var(--primary);
+            border: 3px solid var(--primary);
         }
         
-        .feedback-box {
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: var(--radius-md);
-            background: rgba(255, 255, 255, 0.1);
-            font-size: 0.95rem;
-            line-height: 1.4;
-        }
-
-        /* --- Modal and Summary --- */
+        /* Modal & Pause */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(10px);
         }
         .modal-content {
-            background: var(--bg-medium);
+            background: var(--bg-dark);
             padding: 30px;
             border-radius: var(--radius-xl);
             width: 90%;
-            max-width: 500px;
+            max-width: 400px;
             text-align: center;
             box-shadow: var(--shadow-elevation);
-        }
-        .modal-content h1 { color: var(--primary-light); margin-bottom: 10px; }
-        
-        /* Retaining custom avatar for stability */
-        .avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: var(--primary-light);
-            display: inline-block;
+            border: 1px solid var(--primary);
         }
 
-        /* --- Toast Notification (Updated Style) --- */
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: var(--bg-medium);
-            color: var(--text-main);
-            padding: 12px 20px;
-            border-radius: 50px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            font-size: 0.9rem;
-            z-index: 3000;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .toast.error { background-color: var(--error); }
-        .toast.success { background-color: var(--secondary); color: var(--bg-dark); }
-
-        /* --- Pause Overlay --- */
-        #pause-modal {
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-        }
-        #pause-modal .modal-content {
-            background: var(--bg-dark);
-            border: 2px solid var(--primary);
-        }
-        #pause-modal .modal-content h1 { color: var(--text-main); }
-        
-        /* Mobile adjustments */
-        @media (max-width: 768px) {
-            .app-container { padding: calc(var(--header-height) + 15px) 15px 15px; }
-            .card { padding: 15px; }
-            .upload-area { flex-direction: column; text-align: center; }
-            .quiz-header { flex-wrap: wrap; }
-            #question-jump-select { order: 3; flex-basis: 100%; margin-top: 10px; }
-            .timer-display { position: static; margin-top: 10px; width: 100%; text-align: center; }
+        /* Worksheet Print Styles */
+        @media print {
+            body { background: white; color: black; }
+            .app-header, .worksheet-controls, .hidden-print, #view-hub, #view-quiz, #view-flashcards { display: none !important; }
+            .app-container { max-width: 100%; margin: 0; padding: 0; }
+            #view-worksheet { display: block !important; width: 100%; }
+            .worksheet-content-wrapper { box-shadow: none; border: none; background: white; color: black; }
+            .worksheet-header h2 { color: black; }
+            .worksheet-item { border-bottom: 1px solid #ccc !important; color: black; }
+            .worksheet-item p { color: black; }
         }
         
     </style>
     
 </head>
 <body>
-    <div class="glow-orb orb-1"></div>
-    <div class="glow-orb orb-2"></div>
-
     <header class="app-header">
         <div class="brand">Lumina<i class="fas fa-brain" style="font-size: 1.2rem; margin-left: 5px; color: var(--primary);"></i></div>
         <div class="user-pill" onclick="Controller.toggleSettings()">
-            <div class="avatar"></div>
+            <div class="avatar" style="width: 20px; height: 20px; border-radius: 50%; background: var(--primary-light);"></div>
             <span id="nav-username">Student</span>
         </div>
     </header>
@@ -373,12 +319,12 @@
     <div class="app-container">
         
         <div id="view-hub">
-            <div class="card">
+            <div class="glass-card">
                 <div class="card-title"><div class="step-num">1</div><h2>Source & Topic</h2></div>
                 <label for="topic-input">Learning Topic</label>
                 <input type="text" id="topic-input" placeholder="e.g., Home Safety, Roman Empire">
 
-                <label for="file-upload" style="margin-top: 15px;">PDF File (Max 100+ Pages)</label>
+                <label for="file-upload" style="margin-top: 15px;">PDF File (Max 100+ Pages Supported)</label>
                 <div id="drop-zone" class="upload-area">
                     <div class="icon-circle"><i class="fas fa-file-pdf"></i></div>
                     <div class="upload-info">
@@ -390,11 +336,11 @@
                 <button id="clear-source-btn" class="clear-btn"><i class="fas fa-trash-alt"></i> Clear Input</button>
             </div>
 
-            <div class="card">
+            <div class="glass-card">
                 <div class="card-title"><div class="step-num" style="background: var(--secondary);">2</div><h2>Study Configuration</h2></div>
                 
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex: 1 1 150px;">
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between;">
+                    <div style="flex: 1 1 180px;">
                         <label for="quiz-length-select">Questions/Session</label>
                         <select id="quiz-length-select">
                             <option value="5">5 Questions</option>
@@ -405,16 +351,16 @@
                         </select>
                     </div>
                     
-                    <div style="flex: 1 1 150px;">
+                    <div style="flex: 1 1 120px;">
                         <label>Study Mode</label>
-                        <div class="mode-radios" style="display: flex; flex-direction: column; gap: 5px; padding-top: 12px;">
-                            <label style="font-size: 0.9rem; color: var(--text-main);">
+                        <div class="mode-radios" style="display: flex; flex-direction: column; gap: 10px; padding-top: 5px;">
+                            <label style="font-size: 1rem; color: var(--text-main); font-weight: 500;">
                                 <input type="radio" name="study-mode" value="quiz" checked> Quiz
                             </label>
-                            <label style="font-size: 0.9rem; color: var(--text-main);">
+                            <label style="font-size: 1rem; color: var(--text-main); font-weight: 500;">
                                 <input type="radio" name="study-mode" value="flashcard"> Flashcards
                             </label>
-                            <label style="font-size: 0.9rem; color: var(--text-main);">
+                            <label style="font-size: 1rem; color: var(--text-main); font-weight: 500;">
                                 <input type="radio" name="study-mode" value="worksheet"> Worksheet
                             </label>
                         </div>
@@ -424,7 +370,7 @@
 
             <button id="generate-btn" class="action-btn">Build Library (100 Qs)</button>
 
-            <div id="loading-area" class="loading-area hidden">
+            <div id="loading-area" class="loading-area glass-card hidden">
                 <div class="progress-track" style="height: 10px;">
                     <div id="ai-loader-bar" class="progress-fill" style="width: 0%;"></div>
                 </div>
@@ -434,25 +380,25 @@
         </div>
         
         <div id="view-quiz" class="hidden-view">
-            <div class="card">
+            <div class="glass-card">
                 <div class="quiz-header">
                     <button class="icon-btn" onclick="Controller.pauseSession()"><i class="fas fa-pause"></i> Pause</button>
-                    <div class="progress-track">
-                        <div id="quiz-progress-bar" class="progress-fill" style="width: 0%;"></div>
-                    </div>
                     <span id="question-tracker">0/5</span>
                     <select id="question-jump-select" onchange="Controller.jumpToQuestion(this)"></select>
                     <span id="quiz-timer" class="timer-display">00:00</span>
+                    <div class="progress-track">
+                        <div id="quiz-progress-bar" class="progress-fill" style="width: 0%;"></div>
+                    </div>
                 </div>
                 
                 <img id="quiz-image" src="" alt="Visual Aid for Quiz Question" class="hidden">
 
-                <p id="q-text" style="font-size: 1.2rem; font-weight: 600; margin-bottom: 20px;">Question text will appear here.</p>
+                <p id="q-text" style="font-size: 1.2rem; font-weight: 600; margin-bottom: 25px;">Question text will appear here.</p>
 
                 <div id="options-container" class="options-list">
                     </div>
 
-                <div id="q-feedback" class="feedback-box hidden">
+                <div id="q-feedback" class="glass-card hidden" style="margin-top: 25px; background-color: rgba(88, 86, 214, 0.2);">
                     </div>
 
                 <button id="next-q-btn" class="action-btn hidden">Continue</button>
@@ -460,18 +406,18 @@
         </div>
 
         <div id="view-flashcards" class="hidden-view">
-            <div class="card">
+            <div class="glass-card">
                 <div class="quiz-header">
                     <button class="icon-btn" onclick="Controller.pauseSession()"><i class="fas fa-pause"></i> Pause</button>
+                    <span id="flashcard-tracker">0/5</span>
+                    <span id="flashcard-timer" class="timer-display">00:00</span>
                     <div class="progress-track">
                         <div id="flashcard-progress-bar" class="progress-fill" style="width: 0%;"></div>
                     </div>
-                    <span id="flashcard-tracker">0/5</span>
-                    <span id="flashcard-timer" class="timer-display">00:00</span>
                 </div>
                 
                 <style>
-                    .flashcard-container { perspective: 1000px; height: 300px; margin-bottom: 20px; }
+                    .flashcard-container { perspective: 1000px; height: 350px; margin-bottom: 25px; }
                     .flashcard-container-inner {
                         position: relative; width: 100%; height: 100%; transition: transform 0.8s;
                         transform-style: preserve-3d; cursor: pointer;
@@ -479,9 +425,10 @@
                     .flashcard-container-inner.flipped { transform: rotateY(180deg); }
                     .flashcard-face {
                         position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
-                        background: var(--bg-light); border-radius: var(--radius-xl); padding: 25px;
+                        background: var(--bg-medium); border-radius: var(--radius-xl); padding: 30px;
                         display: flex; flex-direction: column; justify-content: center; align-items: center;
-                        box-shadow: var(--shadow-elevation);
+                        box-shadow: var(--shadow-elevation); border: 1px solid rgba(255, 255, 255, 0.1);
+                        backdrop-filter: blur(5px);
                     }
                     .flashcard-front { transform: rotateY(0deg); }
                     .flashcard-back { transform: rotateY(180deg); text-align: left; }
@@ -491,7 +438,7 @@
                 <div id="flashcard-container" class="flashcard-container">
                     <div class="flashcard-container-inner" onclick="Controller.flipCard(this)">
                         <div class="flashcard-face flashcard-front">
-                            <div id="flashcard-front-content" style="font-size: 1.2rem; font-weight: 600; text-align: center;">Question text (Tap to Flip)</div>
+                            <div id="flashcard-front-content" style="font-size: 1.3rem; font-weight: 600; text-align: center;">Question text (Tap to Flip)</div>
                         </div>
                         <div class="flashcard-face flashcard-back">
                             <div id="flashcard-back-content">Answer and explanation appear here.</div>
@@ -509,7 +456,7 @@
                 <button class="icon-btn" onclick="Controller.closeWorksheet()"><i class="fas fa-times"></i></button>
             </div>
             
-            <div class="worksheet-content-wrapper card" style="padding: 30px;">
+            <div class="worksheet-content-wrapper glass-card" style="padding: 30px;">
                 <div id="worksheet-content">
                     </div>
                 
@@ -519,9 +466,9 @@
                 </div>
             </div>
             
-            <div class="worksheet-controls" style="display: flex; gap: 10px; margin-top: 20px;">
-                <button id="show-answer-key-btn" class="action-btn secondary" onclick="Controller.toggleWorksheetAnswerKey()" style="flex: 1;">Show Answer Key</button>
-                <button class="action-btn" onclick="Controller.printWorksheet()" style="flex: 1;"><i class="fas fa-print"></i> Print Worksheet</button>
+            <div class="worksheet-controls" style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+                <button id="show-answer-key-btn" class="action-btn secondary" onclick="Controller.toggleWorksheetAnswerKey()" style="flex: 1 1 45%;">Show Answer Key</button>
+                <button class="action-btn" onclick="Controller.printWorksheet()" style="flex: 1 1 45%;"><i class="fas fa-print"></i> Print Worksheet</button>
             </div>
         </div>
         
@@ -530,8 +477,8 @@
             <div class="modal-content">
                 <h1>Review</h1>
                 <p id="summary-score" style="font-size: 1.2rem; color: var(--text-sub);">Your Score: <strong class="primary-light" style="font-size: 1.5rem;">0/5</strong></p>
-                <div class="summary-results-container" style="max-height: 200px; overflow-y: auto; margin: 15px 0;">
-                    <div id="summary-results-list" style="text-align: left; padding: 10px; font-size: 0.9rem;">
+                <div class="summary-results-container" style="max-height: 250px; overflow-y: auto; margin: 15px 0;">
+                    <div id="summary-results-list" style="text-align: left; padding: 10px; font-size: 0.95rem;">
                         </div>
                 </div>
                 <button class="action-btn secondary" onclick="Controller.retakeQuiz()">Retake Quiz</button>
@@ -573,7 +520,7 @@
     </div>
 
 <script>
-    // --- V6.6 CONFIGURATION ---
+    // --- V6.7 CONFIGURATION ---
     const CONFIG = {
         MIN_PAGES_TO_PROCESS: 100,
         MAX_QUESTIONS_GENERATED: 100,
@@ -596,7 +543,7 @@
         allQuestions: [],
         sessionQuestions: [],
         currentQIndex: 0,
-        quizResults: [], // Stores { q: ..., correct: ..., selected: ..., answer: ..., time: [seconds] }
+        quizResults: [], 
         imageManifest: {}, 
         settings: {
             username: localStorage.getItem("lumina_user") || "Student",
@@ -606,13 +553,12 @@
         studyMode: 'quiz',
         quizLength: 5,
         isPaused: false,
-        sessionStartTime: 0,
         sessionElapsedTime: 0,
         questionStartTime: 0,
         currentView: 'view-hub'
     };
 
-    // --- UI MAPPING (Refactored) ---
+    // --- UI MAPPING (Fixed V6.7) ---
     const UI = {
         btn: document.getElementById('generate-btn'),
         loadingArea: document.getElementById('loading-area'), 
@@ -717,7 +663,7 @@
         }
     };
     
-    // --- TIMER MODULE (New V6.6) ---
+    // --- TIMER MODULE (V6.6 Logic retained) ---
     const Timer = {
         intervalId: null,
         
@@ -759,18 +705,16 @@
             }
         },
         
-        // Captures time taken since questionStartTime, then resets questionStartTime
         captureQuestionTime: () => {
             if (State.isPaused) return 0;
             const timeTaken = Math.floor((Date.now() - State.questionStartTime) / 1000);
-            State.questionStartTime = Date.now(); // Reset for next question/action
+            State.questionStartTime = Date.now(); 
             return timeTaken;
         }
     };
 
     // --- CORE LOGIC (PDF & SIMULATED ENTERPRISE API) ---
     const Core = {
-        // V6.5 FIX: Accepts callback for synchronous status updates
         extractTextFromPDF: async (file, onProgress) => {
             onProgress("Scanning PDF Structure...", 0);
             try {
@@ -797,7 +741,6 @@
             }
         },
 
-        // V6.5 FIX: Core function returns structured data
         callEnterpriseQuestionAPI: async (topic, text, onProgress, attempt = 1) => {
             onProgress(`Enterprise API processing context... (Attempt ${attempt}/${CONFIG.MAX_INFERENCE_RETRIES})`, 50);
 
@@ -814,11 +757,16 @@
 
             for (let i = 1; i <= numQuestions; i++) {
                 const imageId = `asset-${(i % SIMULATED_PEXELS_URLS.length) + 1}`;
+                const options = Utils.shuffleArray([
+                    `A. Portable Radio`, `B. Battery Charger`, `C. First Aid Kit`, `D. Tarp`
+                ]);
+                const answer = options.find(opt => opt.includes("First Aid Kit"));
+
                 mockQuestions.push({
                     q: `Enterprise Q${i}: According to the visual aid for ${topic}, what is the primary function of the item shown?`, 
-                    opts: [`A. Portable Radio`, `B. Battery Charger`, `C. First Aid Kit`, `D. Tarp`], 
-                    a: `C. First Aid Kit`, 
-                    why: `The First Aid Kit is a mandatory inclusion in every personal emergency evacuation kit. Visual context is provided by Asset ID: ${imageId}.`,
+                    opts: options, 
+                    a: answer, 
+                    why: `The First Aid Kit is a mandatory inclusion in every personal emergency evacuation kit. Visual context is provided by Asset ID: ${imageId}. (Page Reference: ${Math.floor(Math.random() * 10) + 1})`,
                     imageId: imageId 
                 });
             }
@@ -843,10 +791,9 @@
         }
     };
 
-    // --- APPLICATION CONTROLLER (V6.5 FIX: Centralized State Manager) ---
+    // --- APPLICATION CONTROLLER (V6.7 FIX: Core function stability and UI binding) ---
     const AppController = {
         
-        // --- Initialization ---
         loadState: () => {
             State.lastFile = JSON.parse(localStorage.getItem("lumina_file")) || null;
             State.studyMode = localStorage.getItem("lumina_mode") || 'quiz';
@@ -873,13 +820,15 @@
             document.getElementById('age-slider').value = State.settings.age;
             AppController.updateLevelBadge(State.settings.age);
 
-            UI.dropZone.onclick = () => UI.fileInput.click();
+            // CRITICAL FIX: Ensure correct binding for file and button events
+            UI.dropZone.onclick = () => UI.fileInput.click(); // R1 Fix
             UI.fileInput.onchange = AppController.handleFileSelect;
             UI.clearBtn.onclick = AppController.clearSource; 
             UI.quizLengthSelect.onchange = AppController.handleLengthChange;
             UI.studyModeRadios.forEach(radio => radio.onchange = AppController.handleModeChange);
             document.getElementById('age-slider').oninput = (e) => AppController.handleAgeChange(e.target.value);
-
+            UI.btn.onclick = AppController.handleBuild; // R17 Fix
+            
             AppController.updateHubView();
         },
 
@@ -920,7 +869,6 @@
             if (!file) return Utils.showToast("Please select a PDF file.", 'warning');
             if (!topic) return Utils.showToast("Please enter a topic.", 'warning');
             
-            // Check for force rebuild
             if (State.allQuestions.length > 0) {
                 Utils.showToast(`Library loaded. Click 'Build' again within 5s to force rebuild.`, 'warning');
                 if (!UI.btn.dataset.rebuildAttempt || (Date.now() - UI.btn.dataset.rebuildAttempt > 5000)) {
@@ -960,7 +908,7 @@
                 UI.status.innerHTML = `<span style="color:var(--error)">❌ Error: ${err.message}</span>`;
                 UI.loader.style.background = 'var(--error)';
                 Utils.showToast(`Build Failed: ${err.message.substring(0, 80)}...`, 'error');
-                AppController.updateHubView(); // Update view to re-enable button
+                AppController.updateHubView(); 
             } finally {
                 UI.btn.disabled = false;
                 UI.loader.style.width = '100%'; 
@@ -977,12 +925,15 @@
             const maxQs = State.allQuestions.length;
             const sessionLength = Math.min(State.quizLength, maxQs);
             
+            if (sessionLength === 0) {
+                 return Utils.showToast("Question bank is empty or too small.", 'error');
+            }
+
             State.sessionQuestions = Utils.shuffleArray([...State.allQuestions]).slice(0, sessionLength);
             State.currentQIndex = 0;
             State.quizResults = []; 
             State.sessionElapsedTime = 0; 
             
-            // Centralized view switching
             document.querySelectorAll('.app-container > div').forEach(div => div.classList.add('hidden-view'));
             document.getElementById('view-hub').classList.add('hidden-view');
 
@@ -1001,7 +952,7 @@
         },
 
         exitStudyMode: () => {
-            Timer.stop(); // Stop the session timer
+            Timer.stop(); 
             document.getElementById('view-quiz').classList.add('hidden-view');
             document.getElementById('view-flashcards').classList.add('hidden-view');
             document.getElementById('view-worksheet').classList.add('hidden-view');
@@ -1010,7 +961,7 @@
             AppController.updateHubView();
         },
         
-        // --- Timer and Pause Controls (Defect LMNA-Q-500 Fix) ---
+        // --- Timer and Pause Controls ---
         pauseSession: () => {
             if (State.isPaused) return;
             Timer.pause();
@@ -1029,16 +980,16 @@
             }
         },
 
-        // --- Event Handlers for Hub ---
+        // --- Event Handlers for Hub (R1, R2 Fixes) ---
         handleFileSelect: (e) => {
             const file = e.target.files[0];
             if(file) {
                 State.lastFile = { name: file.name, topic: UI.topicInput.value.trim() }; 
                 localStorage.setItem("lumina_file", JSON.stringify(State.lastFile));
-                // Clear old library data to force rebuild on new file
                 State.allQuestions = []; sessionStorage.removeItem('lumina_questions');
                 State.imageManifest = {}; sessionStorage.removeItem('lumina_asset_manifest');
                 AppController.updateHubView();
+                Utils.showToast(`File selected: ${file.name}. Click 'Build Library' to generate questions.`, 'info');
             }
         },
         clearSource: () => { 
@@ -1101,7 +1052,6 @@
             AppController.renderQuestion();
         },
         renderQuestion: () => {
-            // Reset question timer on render
             Timer.captureQuestionTime(); 
 
             const q = State.sessionQuestions[State.currentQIndex];
@@ -1122,7 +1072,6 @@
             const container = document.getElementById('options-container');
             container.innerHTML = '';
 
-            // Render options
             q.opts.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'option-btn';
@@ -1137,9 +1086,8 @@
             document.getElementById('next-q-btn').onclick = AppController.nextQuestion;
         },
         checkAnswer: (btn, selected, qData) => {
-            // Capture time taken to answer
             const timeTaken = Timer.captureQuestionTime();
-            Timer.pause(); // Pause timer while feedback is shown
+            Timer.pause(); 
 
             const buttons = document.querySelectorAll('#options-container .option-btn');
             buttons.forEach(b => b.disabled = true);
@@ -1152,7 +1100,8 @@
                     correct: isCorrect, 
                     selected: selected, 
                     answer: qData.a, 
-                    time: timeTaken 
+                    time: timeTaken,
+                    why: qData.why 
                 };
             }
 
@@ -1174,7 +1123,7 @@
             fb.classList.remove('hidden');
         },
         nextQuestion: () => {
-            Timer.start(); // Resume timer for the next question
+            Timer.start(); 
             if (State.currentQIndex < State.sessionQuestions.length - 1) {
                 State.currentQIndex++;
                 AppController.renderQuestion();
@@ -1186,7 +1135,6 @@
         jumpToQuestion: (selectElement) => {
             const index = parseInt(selectElement.value);
             if (!isNaN(index) && index >= 0 && index < State.sessionQuestions.length) {
-                // Ensure the timer is reset if jumping to an unanswered question
                 if (!State.quizResults[index]) {
                      Timer.captureQuestionTime(); 
                      Timer.start();
@@ -1198,7 +1146,7 @@
             }
         },
         showQuizSummary: (midExit = false) => {
-            Timer.stop(); // Ensure timer is stopped upon finishing or exiting
+            Timer.stop(); 
             const modal = UI.quizSummaryModal;
             modal.querySelector('h1').innerText = midExit ? "Progress Review" : "Final Review";
             modal.querySelector('.summary-results-container').classList.remove('hidden'); 
@@ -1220,13 +1168,17 @@
                 const answered = r ? 'Answered' : 'Skipped';
                 const status = r ? (r.correct ? 'Correct' : 'Wrong') : 'N/A';
                 const time = r ? `${r.time}s` : 'N/A';
+                const why = r ? r.why : 'No answer submitted.';
 
                 list.innerHTML += `
-                    <div style="margin-bottom: 8px; border-left: 3px solid ${r && r.correct ? 'var(--secondary)' : (r ? 'var(--error)' : 'var(--text-sub)')}; padding-left: 10px;">
+                    <div style="margin-bottom: 15px; border-left: 5px solid ${r && r.correct ? 'var(--secondary)' : (r ? 'var(--error)' : 'var(--text-sub)')}; padding-left: 10px;">
                         <strong>Q${index + 1} (${status})</strong> - ${q.q}<br>
-                        <span style="font-size: 0.8em; color: var(--text-sub);">
+                        <span style="font-size: 0.85em; color: var(--text-sub); display: block; margin-top: 5px;">
                             Your Answer: ${r ? r.selected : '—'} | Correct: ${q.a} | Time: ${time}
                         </span>
+                        <p style="font-size: 0.8em; color: var(--text-sub); margin-top: 5px;">
+                             **Source Preview:** ${why}
+                        </p>
                     </div>
                 `;
             });
@@ -1247,7 +1199,6 @@
             AppController.renderFlashcard();
         },
         renderFlashcard: () => {
-            // Reset question timer on render
             Timer.captureQuestionTime(); 
             
             const q = State.sessionQuestions[State.currentQIndex];
@@ -1264,13 +1215,13 @@
             if (imageUrl) {
                 const img = document.createElement('img');
                 img.src = imageUrl; img.alt = "Visual Aid"; img.className = 'flashcard-image';
-                frontContent.innerHTML = ''; // Clear text first
+                frontContent.innerHTML = ''; 
                 frontContent.appendChild(img);
                 frontContent.innerHTML += `<div style="margin-top: 10px;">${q.q} (Tap to Flip)</div>`;
             }
 
             document.getElementById('flashcard-back-content').innerHTML = `
-                <h4>Correct Answer:</h4><p>${q.a}</p>
+                <h4>Correct Answer:</h4><p style="color:var(--secondary); font-weight:700;">${q.a}</p>
                 <h4>Explanation (Source Excerpt):</h4><p>${q.why}</p>
             `;
 
@@ -1278,7 +1229,7 @@
         },
         flipCard: (cardContainerInner) => { cardContainerInner.classList.toggle('flipped'); },
         nextCard: () => {
-            Timer.start(); // Ensure timer continues/resumes on next card
+            Timer.start(); 
             if (State.currentQIndex < State.sessionQuestions.length - 1) {
                 State.currentQIndex++;
                 AppController.renderFlashcard();
@@ -1313,7 +1264,7 @@
                 aContent += `
                     <div class="worksheet-item" style="border-bottom: 1px dashed var(--bg-light); padding-bottom: 10px;">
                         <p><strong>${qNum}. Answer: ${q.a}</strong></p>
-                        <p style="font-size:0.9em; color:var(--text-sub); margin-top:-10px;"><em>Reason: ${q.why}</em></p>
+                        <p style="font-size:0.9em; color:var(--text-sub); margin-top:-10px;"><em>Reason/Page: ${q.why}</em></p>
                     </div>
                 `;
             });
@@ -1331,10 +1282,8 @@
         closeWorksheet: AppController.exitStudyMode
     };
 
-    // Global reference for inline HTML calls (like onclick)
     window.Controller = AppController; 
 
-    // Initialize the application on load
     document.addEventListener('DOMContentLoaded', () => {
         AppController.loadState();
         AppController.initUI();
